@@ -29,7 +29,8 @@ workers from `file://` pages, so serve the folder over HTTP.
 | `worker.js`, `session.js` | netgen in a Web Worker, one command at a time. **Stop** ends a command that runs too long: netgen starts again and replays the commands before it. |
 | `menu.js`, `dialog.js`, `floating-window.js`, `archive.js`, `storage.js` | Menus, dialogs, windows, .zip/.tar.gz, project storage (shared with the Magic and IRSIM web apps). |
 | `setups/scmos.tcl` | A built-in setup for Magic's scmos technology. |
-| `examples/` | Netlists extracted by Magic from layouts exported by the Stixu stick-diagram editor (https://stixu.io), with schematics and a deliberately miswired copy. |
+| `examples/` | Netlists extracted by Magic from layouts exported by the Stixu stick-diagram editor (https://stixu.io), with schematics and a deliberately miswired copy. `openram/`: four of OpenRAM's cells (flip-flop, sense amplifier, tristate buffer, SRAM cell), their layouts' netlists extracted by the Magic web app, with OpenRAM's schematics, netgen setup and BSD licence; each matches. |
+| `handoff.js` | Receives a project from another of the web apps: Magic's Options > Open in the netgen App opens this page in a new tab and posts it the layout's netlist, the schematic and the setup, which it then compares (shared with the Magic and IRSIM web apps). |
 | `licenses/` | The licences of Tcl and the Emscripten runtime, which the module contains. |
 
 * **Compare.** Choose the two netlists (usually a layout's extracted netlist and a schematic), the cell in each, and a

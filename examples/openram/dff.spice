@@ -1,0 +1,49 @@
+* NGSPICE file created from dff.ext - technology: scmos
+
+.subckt dff D Q clk vdd gnd
+M1000 a_65_74# a_38_4# vdd vdd pfet w=4u l=0.4u
++  ad=1.2p pd=4.6u as=4p ps=10u
+M1001 vdd Q a_80_84# vdd pfet w=2u l=0.4u
++  ad=4.2p pd=9.2u as=0.6p ps=2.6u
+M1002 gnd clk a_6_6# gnd nfet w=4u l=0.4u
++  ad=2.2p pd=5.2u as=4p ps=10u
+M1003 a_26_6# a_6_6# a_21_6# gnd nfet w=2u l=0.4u
++  ad=1.4p pd=3.4u as=0.6p ps=2.6u
+M1004 a_38_4# a_26_6# gnd gnd nfet w=2u l=0.4u
++  ad=2p pd=6u as=1.4p ps=3.4u
+M1005 gnd Q a_80_6# gnd nfet w=2u l=0.4u
++  ad=2.2p pd=5.2u as=0.6p ps=2.6u
+M1006 a_26_6# clk a_21_74# vdd pfet w=4u l=0.4u
++  ad=2.4p pd=5.2u as=1.6p ps=4.8u
+M1007 Q a_70_6# vdd vdd pfet w=8u l=0.4u
++  ad=8p pd=18u as=4.2p ps=9.2u
+M1008 vdd a_38_4# a_35_74# vdd pfet w=4u l=0.4u
++  ad=2.4p pd=5.2u as=1.6p ps=4.8u
+M1009 a_65_6# a_38_4# gnd gnd nfet w=2u l=0.4u
++  ad=0.6p pd=2.6u as=2p ps=6u
+M1010 a_35_6# clk a_26_6# gnd nfet w=2u l=0.4u
++  ad=0.6p pd=2.6u as=1.4p ps=3.4u
+M1011 a_35_74# a_6_6# a_26_6# vdd pfet w=4u l=0.4u
++  ad=1.6p pd=4.8u as=2.4p ps=5.2u
+M1012 a_38_4# a_26_6# vdd vdd pfet w=4u l=0.4u
++  ad=4p pd=10u as=2.4p ps=5.2u
+M1013 a_21_6# D gnd gnd nfet w=2u l=0.4u
++  ad=0.6p pd=2.6u as=2.2p ps=5.2u
+M1014 a_80_84# clk a_70_6# vdd pfet w=2u l=0.4u
++  ad=0.6p pd=2.6u as=3p ps=5.6u
+M1015 a_80_6# a_6_6# a_70_6# gnd nfet w=2u l=0.4u
++  ad=0.6p pd=2.6u as=1.6p ps=3.6u
+M1016 a_70_6# clk a_65_6# gnd nfet w=2u l=0.4u
++  ad=1.6p pd=3.6u as=0.6p ps=2.6u
+M1017 Q a_70_6# gnd gnd nfet w=4u l=0.4u
++  ad=4p pd=10u as=2.2p ps=5.2u
+M1018 vdd clk a_6_6# vdd pfet w=8u l=0.4u
++  ad=4.4p pd=9.2u as=8p ps=18u
+M1019 a_70_6# a_6_6# a_65_74# vdd pfet w=4u l=0.4u
++  ad=3p pd=5.6u as=1.2p ps=4.6u
+M1020 gnd a_38_4# a_35_6# gnd nfet w=2u l=0.4u
++  ad=1.4p pd=3.4u as=0.6p ps=2.6u
+M1021 a_21_74# D vdd vdd pfet w=4u l=0.4u
++  ad=1.6p pd=4.8u as=4.4p ps=9.2u
+.ends
+

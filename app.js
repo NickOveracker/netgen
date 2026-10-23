@@ -12,6 +12,7 @@ import {FloatingWindow, topEdgeResizer, paneResizer} from "./floating-window.js"
 import {menuBar, closeMenus} from "./menu.js";
 import {ask, setHomeFocus} from "./dialog.js";
 import {readArchive, isArchive, stripCommonFolder, cleanPath, writeTarGz} from "./archive.js";
+import {receiveProject} from "./handoff.js";
 import {diskSupported, DiskStore, BrowserStore, recentProjects, reopen, forget} from "./storage.js";
 
 const $ = selector => document.querySelector(selector);
@@ -22,6 +23,9 @@ const commandInput = $("#command");
 const statusEl = $("#status");
 
 // Each example: its files (examples/<name>/), and the comparison it runs.
+const OPENRAM_FILES = ["dff", "sense_amp", "tri_gate", "cell_1rw"].flatMap(c => [`${c}.spice`, `${c}.sp`])
+    .concat(["setup.tcl", "README.txt", "LICENSE"]);
+// Each example is a folder, examples/<name>/ (or examples/<folder>/), of the files it lists.
 const EXAMPLES = {
     inverter: {label: "Inverter: layout vs schematic (match)", files: ["inverter_tap.spice", "inverter_schematic.spice", "setup.tcl", "inverter_tap.mag"],
         circuit1: ["inverter_tap.spice", "inverter_tap"], circuit2: ["inverter_schematic.spice", "inverter"]},
@@ -34,6 +38,9 @@ const EXAMPLES = {
         circuit1: ["full_adder.spice", "full_adder"], circuit2: ["full_adder_miswired.spice", "full_adder_miswired"]},
     mult4_sizes: {label: "4×4 multiplier: two sizings (338 transistors)", files: ["mult4.spice", "mult4_path.spice", "setup.tcl"],
         circuit1: ["mult4.spice", "mult4"], circuit2: ["mult4_path.spice", "mult4_path"]},
+    ...Object.fromEntries([["dff", "D flip-flop"], ["sense_amp", "sense amplifier"], ["tri_gate", "tristate buffer"],
+        ["cell_1rw", "6T SRAM cell"]].map(([cell, what]) => [`openram_${cell}`, {label: `OpenRAM's ${what}: layout vs schematic (match)`,
+        folder: "openram", files: OPENRAM_FILES, circuit1: [`${cell}.spice`, cell], circuit2: [`${cell}.sp`, cell]}])),
 };
 const DEFAULT_EXAMPLE = "inverter";
 // Setup files built into the app, kept apart from the project's files.
@@ -249,7 +256,7 @@ async function loadExample(name) {
     statusEl.textContent = `Loading ${name}…`;
     const files = [];
     for(const file of example.files) {
-        const url = here(`examples/${name}/${file}`);
+        const url = here(`examples/${example.folder || name}/${file}`);
         const response = await fetch(url);
         if(!response.ok) {
             throw new Error(`Couldn't load the example ${url}: HTTP ${response.status}`);
@@ -913,11 +920,21 @@ async function announce() {
 }
 
 async function start() {
+    const handed = receiveProject();
     refreshRecent();
     await announce();
     resultWindow.open();
-    const name = new URLSearchParams(location.search).get("example");
-    await loadExample(EXAMPLES[name] ? name : DEFAULT_EXAMPLE);
+    // A project from another of the apps (Magic's Open in the netgen App), or an example.
+    const sent = await handed;
+    if(sent) {
+        print(`From the ${sent.from} app: ${sent.name}`, "info");
+        if(await loadProject(sent.name, sent.files, null, sent.compare)) {
+            await runLvs();
+        }
+    } else {
+        const name = new URLSearchParams(location.search).get("example");
+        await loadExample(EXAMPLES[name] ? name : DEFAULT_EXAMPLE);
+    }
     home();
 }
 

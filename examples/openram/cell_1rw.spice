@@ -1,0 +1,17 @@
+* NGSPICE file created from cell_1rw.ext - technology: scmos
+
+.subckt cell_1rw bl br wl vdd gnd
+M1000 Q_bar wl br gnd nfet w=0.8u l=0.4u
++  ad=1.2p pd=3.6u as=0.8p ps=3.6u
+M1001 Q wl bl gnd nfet w=0.8u l=0.4u
++  ad=1.2p pd=3.6u as=0.8p ps=3.6u
+M1002 gnd Q Q_bar gnd nfet w=1.6u l=0.4u
++  ad=1.6p pd=5.2u as=1.2p ps=3.6u
+M1003 vdd Q Q_bar vdd pfet w=0.6u l=0.8u
++  ad=0.76p pd=3.6u as=0.76p ps=3.6u
+M1004 Q Q_bar gnd gnd nfet w=1.6u l=0.4u
++  ad=1.2p pd=3.6u as=2.88p ps=6.8u
+M1005 Q Q_bar vdd vdd pfet w=0.6u l=0.8u
++  ad=0.76p pd=3.6u as=1.24p ps=5.2u
+.ends
+

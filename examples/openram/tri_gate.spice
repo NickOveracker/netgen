@@ -1,0 +1,17 @@
+* NGSPICE file created from tri_gate.ext - technology: scmos
+
+.subckt tri_gate in out en en_bar vdd gnd
+M1000 a_19_53# a_4_27# vdd vdd pfet w=1.6u l=0.4u
++  ad=0.96p pd=2.8u as=0.96p ps=2.8u
+M1001 vdd in a_4_27# vdd pfet w=1.6u l=0.4u
++  ad=0.96p pd=2.8u as=1.6p ps=5.2u
+M1002 out en_bar a_19_53# vdd pfet w=1.6u l=0.4u
++  ad=1.6p pd=5.2u as=0.96p ps=2.8u
+M1003 a_19_27# a_4_27# gnd gnd nfet w=0.8u l=0.4u
++  ad=0.48p pd=2u as=0.48p ps=2u
+M1004 gnd in a_4_27# gnd nfet w=0.8u l=0.4u
++  ad=0.48p pd=2u as=0.8p ps=3.6u
+M1005 out en a_19_27# gnd nfet w=0.8u l=0.4u
++  ad=0.8p pd=3.6u as=0.48p ps=2u
+.ends
+

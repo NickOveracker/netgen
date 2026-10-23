@@ -1,0 +1,27 @@
+* NGSPICE file created from sense_amp.ext - technology: scmos
+
+.subckt sense_amp bl br dout en vdd gnd
+M1000 a_12_127# en br vdd pfet w=4.8u l=0.4u
++  ad=4.8p pd=11.6u as=4.8p ps=11.6u
+M1001 bl en a_3_63# vdd pfet w=4.8u l=0.4u
++  ad=4.8p pd=11.6u as=4.8p ps=11.6u
+M1002 vdd a_13_8# dout vdd pfet w=4.8u l=0.4u
++  ad=2.56p pd=6u as=4.8p ps=11.6u
+M1003 gnd en a_14_159# gnd nfet w=1.8u l=0.4u
++  ad=1.8p pd=5.6u as=1.8p ps=5.6u
+M1004 vdd a_12_127# a_3_63# vdd pfet w=3.6u l=0.4u
++  ad=2.16p pd=4.8u as=3.6p ps=9.2u
+M1005 a_14_159# a_12_127# a_3_63# gnd nfet w=1.8u l=0.4u
++  ad=1.08p pd=3u as=1.8p ps=5.6u
+M1006 a_13_8# a_3_63# gnd gnd nfet w=0.8u l=0.4u
++  ad=0.8p pd=3.6u as=1.28p ps=3.6u
+M1007 gnd a_13_8# dout gnd nfet w=2.4u l=0.4u
++  ad=1.28p pd=3.6u as=2.4p ps=6.8u
+M1008 a_13_8# a_3_63# vdd vdd pfet w=1.6u l=0.4u
++  ad=1.6p pd=5.2u as=2.56p ps=6u
+M1009 a_12_127# a_3_63# vdd vdd pfet w=3.6u l=0.4u
++  ad=3.6p pd=9.2u as=2.16p ps=4.8u
+M1010 a_12_127# a_3_63# a_14_159# gnd nfet w=1.8u l=0.4u
++  ad=1.8p pd=5.6u as=1.08p ps=3u
+.ends
+

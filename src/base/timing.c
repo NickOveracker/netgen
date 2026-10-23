@@ -93,12 +93,12 @@ float CPUTime(void)
 
 #include <time.h>      /* for time() */
 
-static long st;
+static time_t st;
 
 float CPUTime(void)
 /* return the elapsed CPU time in seconds (actually, elapsed wall time) */
 {
-  long now;
+  time_t now;
 
   time(&now);
   /* keep start time offset in st, to prevent precision problems

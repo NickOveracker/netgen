@@ -171,7 +171,7 @@ int xilinxCell(char *cell)
 	struct objlist *xilinx_gate();
 	char *pname,dir;
 	int pin;
-	long t;
+	time_t t;
 
 	flattenCell(cell, -1);
 	nl = LookupCell(cell);

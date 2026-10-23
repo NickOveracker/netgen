@@ -20,9 +20,9 @@
 /* This file is part of the WebAssembly fork of netgen and, like	*/
 /* netgen, is free software: you can redistribute it and/or modify it	*/
 /* under the terms of the GNU General Public License as published by	*/
-/* the Free Software Foundation (any version).  It is distributed	*/
-/* WITHOUT ANY WARRANTY; see the GNU General Public License, in the	*/
-/* file Copying at the top of the repository, for more details.	*/
+/* the Free Software Foundation, version 2 or (at your option) any	*/
+/* later version.  It is distributed WITHOUT ANY WARRANTY; see the	*/
+/* GNU General Public License in licenses/GPL-2.0.txt.			*/
 /*----------------------------------------------------------------------*/
 
 /*

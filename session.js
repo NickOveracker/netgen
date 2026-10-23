@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 // An interactive netgen session running in worker.js.
 //
 // Commands run one at a time, in order, and their output arrives while they

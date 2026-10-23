@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 // Modal form dialogs (the web counterpart of the Tcl wrapper's prompt
 // dialogs).  ask({title, fields, ok}) resolves to {name: value, ...}, or
 // null when cancelled.  A field is {name, label, value, options?, list?}:

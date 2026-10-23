@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 // netgen in the browser: LVS (comparing two netlists) with netgen compiled
 // to WebAssembly together with Tcl.  The Compare window sets up and runs
 // netgen's "lvs" command, the Result window shows what it found (from its
@@ -1084,6 +1085,7 @@ $("#top-menus").appendChild(menuBar([
         {label: "netgen upstream source", href: "https://github.com/RTimothyEdwards/netgen"},
         "-",
         {label: "netgen license (GPL)", href: "https://github.com/NickOveracker/netgen/blob/wasm/Copying"},
+        {label: "Web app license (GPL 2 or later)", href: "https://github.com/NickOveracker/netgen/blob/wasm/licenses/GPL-2.0.txt"},
         {label: "Tcl license (BSD-style)", href: "https://github.com/NickOveracker/netgen/blob/wasm/licenses/tcl-license.terms"},
         {label: "Emscripten runtime license (MIT)", href: "https://github.com/NickOveracker/netgen/blob/wasm/licenses/emscripten-LICENSE"},
         "-",

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 // Drop-down menus for the layout windows' menu bars, like Tk's menubuttons.
 //
 // A menu is a list of items:

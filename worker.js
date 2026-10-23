@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 // netgen in a Web Worker.
 //
 // Protocol (the web app, session.js):

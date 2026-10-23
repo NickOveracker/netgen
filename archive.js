@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 // Reading and writing project archives with the browser's own
 // (De)CompressionStream: .zip (stored or deflated entries), .tar, .tar.gz
 // and .tgz in; .tar.gz out.  No third-party libraries.

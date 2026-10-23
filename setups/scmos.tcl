@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 # netgen setup for Magic's scmos technology.
 #
 # Magic's ext2spice calls the transistors nfet and pfet; ext2sim (and Stixu's

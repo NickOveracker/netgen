@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
 # Build netgen to WebAssembly, with Tcl, for the web app in this folder.
 #
 # netgen's LVS (the "lvs" command and the setup files of PDKs) is Tcl, so

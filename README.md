@@ -92,10 +92,12 @@ netgen too; each is a separate commit on this branch:
 
 ## Licence
 
-netgen is free software under the GNU General Public License (the file `Copying`; netgen's source files allow any
-version). This fork as a whole, including the web app (the HTML, JavaScript and CSS at the top), `build.sh`, the setup
-file and the examples, is distributed under the same licence, at no charge, WITHOUT ANY WARRANTY. The module also
-contains Tcl and the Emscripten runtime, under their own permissive licences (`licenses/`).
+netgen is free software under the GNU General Public License: `Copying` holds version 1, and netgen's source files
+allow any version. This fork's new code (the web app, the HTML, JavaScript and CSS at the top; `build.sh`;
+`src/tcltk/netgenweb.c`; the setup file and the examples) is under the GNU General Public License, version 2 or (at
+your option) any later version (`licenses/GPL-2.0.txt`), and the fork as a whole is distributed under those terms, at
+no charge, WITHOUT ANY WARRANTY. The module also contains Tcl and the Emscripten runtime, under their own permissive
+licences (`licenses/`).
 
 As the licence asks, the files under `src/` that this fork changed or added carry a notice saying so, with the date and
 subject of each change, and `build.sh` stamps such a notice into the copy of `netgen.tcl` it embeds in the module. The

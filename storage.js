@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 // Keeping projects between visits.
 //
 // Two kinds of store, with the same interface (readAll, write):

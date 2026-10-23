@@ -1,4 +1,5 @@
-// Floating windows on a desktop element (shared with the Magic and IRSIM web apps): drag by the title bar, resize from
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Floating windows on a desktop element (shared by the Magic, IRSIM and netgen web apps): drag by the title bar, resize from
 // any edge or corner, collapse to the title bar, close.
 // Clicking a window brings it to the front.  With the title bar focused,
 // arrow keys move the window and Shift+arrow keys resize it.

@@ -43,8 +43,8 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
   white-space: nowrap; }
 #kofi:hover, #kofi:focus-visible { background: rgba(255, 94, 91, .22); }
 #kofi span { color: #ff5e5b; font-size: 13px; }
-#status { margin-left: auto; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; max-width: 45vw; }
+#status { flex: 1 1 0; min-width: 6em; text-align: right; color: var(--muted); font-size: 13px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
 #stop { background: var(--error); color: #fff; border-color: var(--error); }
 #stop[hidden] { display: none; }
 
@@ -103,6 +103,7 @@ body.dragging #desktop::after { content: attr(data-drop);
   position: absolute; inset: 12px; display: grid; place-items: center; border: 2px dashed var(--accent); border-radius: 12px;
   background: color-mix(in srgb, var(--panel) 85%, transparent); font-size: 16px; z-index: 900001; text-align: center; padding: 20px; }
 
+@media (max-width: 1000px) { .toolbar h1 small { display: none; } }
 @media (max-width: 640px) {
   .toolbar h1 small, #status { display: none; }
   #kofi { margin-left: auto; }

@@ -14,8 +14,8 @@ register({
     "netgen exited ({command}).": "netgen が終了しました（{command}）。",
     "netgen stopped: {why}.": "netgen が停止しました：{why}。",
     "{message} Restarting…": "{message}再起動しています…",
-    "{message} Restarting and replaying 1 command…": "{message}再起動して、コマンド 1 個を再実行しています…",
-    "{message} Restarting and replaying {n} commands…": "{message}再起動して、コマンド {n} 個を再実行しています…",
+    "{message} Restarting and replaying 1 command…": "{message}再起動して、1 個のコマンドを再実行します…",
+    "{message} Restarting and replaying {n} commands…": "{message}再起動して、{n} 個のコマンドを再実行します…",
     'Back to the state before "{command}".': "「{command}」の前の状態に戻りました。",
     'Stopped "{command}".': "「{command}」を停止しました。",
 });

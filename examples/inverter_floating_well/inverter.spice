@@ -1,0 +1,11 @@
+* NGSPICE file created from inverter.ext - technology: scmos
+
+.global Vdd Gnd 
+
+.subckt inverter VDD GND A Y
+M1000 VDD A Y w_80_288# pfet w=6u l=2u
++  ad=0.396n pd=0.144m as=0.396n ps=0.144m
+M1001 Y A GND Gnd nfet w=6u l=2u
++  ad=0.396n pd=0.144m as=0.396n ps=0.144m
+.ends
+

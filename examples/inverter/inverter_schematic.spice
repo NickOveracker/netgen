@@ -1,0 +1,6 @@
+* Inverter schematic: the circuit the layout should implement.
+* The p-transistor's body is tied to VDD and the n-transistor's to GND.
+.subckt inverter VDD GND A Y
+MP Y A VDD VDD pfet w=6u l=2u
+MN Y A GND GND nfet w=6u l=2u
+.ends

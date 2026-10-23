@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>netgen</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="description" content="netgen, the LVS netlist comparison tool, compiled to WebAssembly with Tcl, in the browser.">
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #e9e8ef; --panel: #ffffff; --head: #f3f1f8; --fg: #1d1d1f; --muted: #5f6368;
+  --rule: #cfcbd9; --accent: #4c26b8; --error: #b3261e; --info: #1e6b3a; --log-bg: #fbfbfd;
+  --accent-soft: #e6dffa; --pass: #1e6b3a; --pass-bg: #e3f3e8; --warn: #8a5a00; --warn-bg: #fff2d6;
+  --fail: #b3261e; --fail-bg: #fbe5e3; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181b; --panel: #222327; --head: #2b2c31; --fg: #e8e8ea; --muted: #a0a4a8;
+    --rule: #3c3e44; --accent: #a68cff; --error: #f2948c; --info: #8fd3a4; --log-bg: #1b1c1f;
+    --accent-soft: #3a3352; --pass: #8fd3a4; --pass-bg: #1d3325; --warn: #ffc94d; --warn-bg: #3a3018;
+    --fail: #f2948c; --fail-bg: #3e2220;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { display: flex; flex-direction: column; background: var(--bg); color: var(--fg);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+
+.toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 10px;
+  background: var(--panel); border-bottom: 1px solid var(--rule); }
+.toolbar h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .02em; }
+.toolbar h1 small { font-weight: 400; color: var(--muted); }
+button, select { font: inherit; color: inherit; background: var(--head); border: 1px solid var(--rule);
+  border-radius: 6px; padding: 3px 10px; cursor: pointer; min-height: 28px; }
+button:hover, select:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#top-menus .mb-button { font-size: 14px; min-height: 28px; padding: 3px 10px; border-color: var(--rule); background: var(--head); }
+#kofi { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border: 1px solid #ff5e5b;
+  border-radius: 999px; background: rgba(255, 94, 91, .1); color: var(--fg); font-size: 12px; text-decoration: none;
+  white-space: nowrap; }
+#kofi:hover, #kofi:focus-visible { background: rgba(255, 94, 91, .22); }
+#kofi span { color: #ff5e5b; font-size: 13px; }
+#status { margin-left: auto; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 45vw; }
+#stop { background: var(--error); color: #fff; border-color: var(--error); }
+#stop[hidden] { display: none; }
+
+#desktop { position: relative; flex: 1; min-height: 120px; overflow: hidden; }
+
+#console { display: flex; flex-direction: column; height: 30%; min-height: 34px; overflow: hidden;
+  background: var(--log-bg); border-top: 1px solid var(--rule); }
+#console.collapsed { height: auto !important; }
+#console.collapsed #log { display: none; }
+#log { flex: 1; overflow: auto; padding: 4px 10px; font: 12px/1.45 var(--mono); white-space: pre-wrap; }
+.log-error { color: var(--error); }
+.log-info { color: var(--info); }
+.log-command { color: var(--accent); }
+.command-row { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-top: 1px solid var(--rule); background: var(--panel); }
+.command-row label { font: 13px var(--mono); color: var(--muted); }
+#command { flex: 1; min-width: 0; font: 13px var(--mono); color: inherit; background: var(--log-bg);
+  border: 1px solid var(--rule); border-radius: 5px; padding: 3px 6px; }
+
+.cmp-form { display: flex; flex-direction: column; gap: 8px; padding: 10px; height: 100%; overflow: auto; font-size: 13px; }
+.cmp-form fieldset { border: 1px solid var(--rule); border-radius: 6px; margin: 0; padding: 4px 8px 8px; display: grid;
+  grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; }
+.cmp-form legend { color: var(--muted); font-size: 12px; padding: 0 4px; }
+.cmp-form fieldset label, .cmp-wide { display: contents; }
+.cmp-wide { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
+.cmp-form select, .cmp-form input:not([type]) { min-width: 0; width: 100%; font: 12px var(--mono); }
+.cmp-form input:not([type]) { color: inherit; background: var(--log-bg); border: 1px solid var(--rule); border-radius: 5px; padding: 4px 6px; }
+.cmp-check { display: flex; gap: 6px; align-items: center; }
+.cmp-buttons { display: flex; gap: 6px; }
+.cmp-command { font: 11px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+
+.res-body { overflow: auto; padding: 10px 12px; font-size: 13px; }
+.res-empty { color: var(--muted); }
+.res-verdict { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 8px; border: 1px solid; }
+.res-verdict strong { font-size: 15px; }
+.res-icon { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 50%; color: #fff;
+  font-weight: 700; font-size: 16px; }
+.res-pass { background: var(--pass-bg); border-color: var(--pass); }
+.res-pass .res-icon { background: var(--pass); }
+.res-warn { background: var(--warn-bg); border-color: var(--warn); }
+.res-warn .res-icon { background: var(--warn); }
+.res-fail { background: var(--fail-bg); border-color: var(--fail); }
+.res-fail .res-icon { background: var(--fail); }
+@media (prefers-color-scheme: dark) { .res-icon, button.primary { color: #111; } }
+.res-sub { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.res-actions { display: flex; gap: 6px; margin: 8px 0; }
+.res-actions button { font-size: 12px; min-height: 24px; padding: 1px 8px; }
+.res-cell h3 { font-size: 14px; margin: 14px 0 6px; overflow-wrap: anywhere; }
+.res-cell h4 { font-size: 13px; margin: 12px 0 4px; }
+.res-table { border-collapse: collapse; font: 12px var(--mono); margin: 2px 0; }
+.res-table th, .res-table td { border: 1px solid var(--rule); padding: 2px 8px; text-align: left; vertical-align: top; }
+.res-table th { font-family: system-ui, sans-serif; font-weight: 600; background: var(--head); }
+.res-table td + td { text-align: right; }
+.res-props td + td, .res-pins td + td { text-align: left; }
+.res-diff td { background: var(--fail-bg); }
+.res-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0; padding-bottom: 6px; border-bottom: 1px dashed var(--rule); }
+.res-frag { font: 12px var(--mono); margin-bottom: 4px; }
+.res-frag strong { overflow-wrap: anywhere; }
+.res-frag div { color: var(--muted); padding-left: 10px; }
+.res-none strong { color: var(--fail); }
+.res-pins { margin: 10px 0 0; }
+.res-pins summary, .res-report summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.res-report { margin-top: 14px; }
+.res-report pre { font: 11px/1.4 var(--mono); background: var(--log-bg); border: 1px solid var(--rule); border-radius: 6px;
+  padding: 8px; overflow: auto; max-height: 60vh; }
+
+.files-body { display: flex; height: 100%; font-size: 12px; }
+.files-list { flex: none; width: 30%; min-width: 80px; margin: 0; padding: 4px 0; list-style: none; overflow: auto; font: 12px var(--mono); }
+.files-list li { padding: 2px 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.files-list li:hover { background: var(--accent-soft); }
+.files-list li[aria-selected="true"] { background: var(--accent); color: #fff; }
+.files-edit { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.files-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px; border-bottom: 1px solid var(--rule); }
+.files-bar button { font-size: 12px; min-height: 24px; padding: 1px 8px; }
+.files-bar span { color: var(--muted); margin-left: auto; font-family: var(--mono); }
+.files-edit textarea { flex: 1; resize: none; border: 0; padding: 6px 8px; font: 12px/1.45 var(--mono); color: inherit; background: var(--log-bg); }
+
+#help { position: absolute; right: 12px; top: 52px; z-index: 900000; width: min(480px, calc(100vw - 24px));
+  max-height: calc(100% - 70px); overflow: auto; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; box-shadow: 0 8px 26px rgba(0,0,0,.25); padding: 6px 16px 12px; font-size: 13px; }
+#help h2 { font-size: 14px; margin: 10px 0 4px; }
+#help dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; }
+#help dt { font-family: var(--mono); white-space: nowrap; }
+#help dd { margin: 0; color: var(--muted); }
+#help p { margin: 6px 0; }
+#help code { font-family: var(--mono); }
+
+body.dragging #desktop::after { content: "Drop netlists (.spice, .sim, .v…), setup files (.tcl), a folder, or a .zip / .tar.gz to open it";
+  position: absolute; inset: 12px; display: grid; place-items: center; border: 2px dashed var(--accent); border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 85%, transparent); font-size: 16px; z-index: 900001; text-align: center; padding: 20px; }
+
+@media (max-width: 640px) {
+  .toolbar h1 small, #status { display: none; }
+  #kofi { margin-left: auto; }
+}
+</style>
+</head>
+<body>
+<header class="toolbar">
+  <h1>netgen <small>LVS netlist comparison · WebAssembly</small></h1>
+  <div id="top-menus"></div>
+  <button type="button" id="help-toggle" aria-expanded="false" aria-controls="help">Help</button>
+  <button type="button" id="stop" hidden title="Stop the command that is running">Stop</button>
+  <span id="status" role="status">Loading…</span>
+  <a id="kofi" href="https://ko-fi.com/twentynine" target="_blank" rel="noopener"><span aria-hidden="true">♥</span>Support on Ko-fi</a>
+  <input type="file" id="pick-files" multiple hidden accept=".spice,.spi,.sp,.cir,.ckt,.cdl,.net,.netlist,.sim,.ext,.v,.vg,.ntk,.tcl,.zip,.tar,.tgz,.gz,.txt">
+  <input type="file" id="pick-folder" webkitdirectory hidden>
+</header>
+
+<main id="desktop" aria-label="netgen windows"></main>
+
+<aside id="help" hidden>
+  <h2>Comparing netlists (LVS)</h2>
+  <p>netgen checks that two netlists describe the same circuit: usually a layout's extracted netlist (Magic's
+    <code>ext2spice lvs</code>) against the schematic it should implement. It matches devices and nets by how they connect,
+    not by their names, then reports what differs: nets, devices, pins, and device sizes (properties).</p>
+  <p>In the <b>Compare</b> window, choose the two netlists, the cell in each (the subcircuit; .sim and .ext files hold one
+    cell), and a setup file, then <b>Run LVS</b>. The <b>Result</b> window shows the verdict, the nets and devices that differ,
+    side by side, property differences and pins, and netgen's full report.</p>
+  <h2>Setup files</h2>
+  <p>A setup file (Tcl) tells netgen which device names are the same, which terminals can swap, and which properties to
+    compare. Process kits ship one (for sky130, <code>sky130A_setup.tcl</code>): add it to the project and choose it. The
+    built-in <b>scmos</b> setup suits Magic's scmos technology. Without one, netgen uses defaults.</p>
+  <h2>Commands</h2>
+  <p>The console runs any netgen or Tcl command. A few:</p>
+  <dl>
+    <dt>lvs {a.spice cell} {b.spice cell} setup.tcl out.txt -json</dt><dd>What Run LVS does</dd>
+    <dt>readnet file · cells list 0</dt><dd>Read a netlist; list its cells</dd>
+    <dt>writenet spice {a.spice cell}</dt><dd>Write a cell in another format</dd>
+    <dt>reinitialize</dt><dd>Forget all netlists</dd>
+    <dt>help</dt><dd>All netgen commands</dd>
+  </dl>
+  <p>Mixing case-sensitive formats (.sim, .ext, Verilog) with SPICE: netgen keeps the case sensitivity of the file it reads
+    first, so put the SPICE netlist first when node names differ only in case. <b>Stop</b> ends a command that runs too long:
+    netgen starts again and replays the commands before it.</p>
+  <h2>Projects</h2>
+  <p>Project &gt; Open files or Open folder copies netlists and setup files, or one .zip / .tar.gz, into the page; you can also
+    drop them on it. To keep your work, <b>work in a folder on disk</b> (Chrome, Edge and other Chromium browsers) or <b>keep
+    the project in browser storage</b> (any browser): reports netgen writes and your edits in the Files window are saved there.</p>
+</aside>
+
+<section id="console" aria-label="netgen console">
+  <div id="log" aria-live="polite"></div>
+  <div class="command-row">
+    <button type="button" id="console-toggle" aria-expanded="true" aria-controls="log" title="Show or hide the console">☰</button>
+    <label for="command">netgen&gt;</label>
+    <input id="command" autocomplete="off" spellcheck="false" placeholder="lvs {a.spice cell} {b.spice cell} setup.tcl · readnet file · help">
+  </div>
+</section>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

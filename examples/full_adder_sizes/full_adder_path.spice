@@ -1,0 +1,63 @@
+* NGSPICE file created from full_adder_path.ext - technology: scmos
+
+.global Vdd Gnd 
+
+.subckt full_adder_path VDD GND A B C X Y
+M1000 a_313_85# C GND Gnd nfet w=8u l=2u
++  ad=96p pd=40u as=96p ps=40u
+M1001 a_473_311# B a_441_311# w_128_315# pfet w=24u l=2u
++  ad=0.144n pd=72u as=0.144n ps=72u
+M1002 a_313_85# A GND Gnd nfet w=8u l=2u
++  ad=96p pd=40u as=96p ps=40u
+M1003 GND A a_249_85# Gnd nfet w=8u l=2u
++  ad=96p pd=40u as=96p ps=40u
+M1004 VDD a_86_152# Y w_64_315# pfet w=8u l=2u
++  ad=0.114n pd=52u as=0.114n ps=52u
+M1005 a_86_152# C a_133_86# Gnd nfet w=8u l=2u
++  ad=96p pd=40u as=96p ps=40u
+M1006 a_441_83# C a_409_85# Gnd nfet w=12u l=2u
++  ad=0.108n pd=48u as=0.102n ps=44u
+M1007 a_473_83# B a_441_83# Gnd nfet w=12u l=2u
++  ad=0.108n pd=48u as=0.108n ps=48u
+M1008 a_86_152# C a_133_320# w_128_315# pfet w=16u l=2u
++  ad=0.12n pd=56u as=0.12n ps=56u
+M1009 a_313_315# A VDD w_128_315# pfet w=16u l=2u
++  ad=0.12n pd=56u as=0.12n ps=56u
+M1010 a_409_85# a_86_152# a_313_315# w_128_315# pfet w=16u l=2u
++  ad=0.132n pd=64u as=0.12n ps=56u
+M1011 GND A a_133_86# Gnd nfet w=8u l=2u
++  ad=96p pd=40u as=0.114n ps=52u
+M1012 a_133_320# B VDD w_128_315# pfet w=16u l=2u
++  ad=0.12n pd=56u as=0.12n ps=56u
+M1013 a_313_315# C VDD w_128_315# pfet w=16u l=2u
++  ad=0.12n pd=56u as=0.12n ps=56u
+M1014 a_409_85# a_86_152# a_313_85# Gnd nfet w=8u l=2u
++  ad=0.102n pd=44u as=96p ps=40u
+M1015 VDD A a_249_315# w_128_315# pfet w=16u l=2u
++  ad=0.12n pd=56u as=0.12n ps=56u
+M1016 a_441_311# C a_409_85# w_128_315# pfet w=24u l=2u
++  ad=0.144n pd=72u as=0.132n ps=64u
+M1017 X a_409_85# VDD w_128_315# pfet w=29u l=2u
++  ad=0.177n pd=94u as=0.151n ps=77u
+M1018 GND B a_313_85# Gnd nfet w=8u l=2u
++  ad=96p pd=40u as=96p ps=40u
+M1019 GND A a_473_83# Gnd nfet w=12u l=2u
++  ad=0.111n pd=50u as=0.108n ps=48u
+M1020 a_249_85# B a_86_152# Gnd nfet w=8u l=2u
++  ad=96p pd=40u as=96p ps=40u
+M1021 a_133_86# B GND Gnd nfet w=8u l=2u
++  ad=96p pd=40u as=96p ps=40u
+M1022 X a_409_85# GND Gnd nfet w=14u l=2u
++  ad=0.132n pd=64u as=0.111n ps=50u
+M1023 VDD A a_133_320# w_128_315# pfet w=16u l=2u
++  ad=0.12n pd=56u as=0.138n ps=68u
+M1024 VDD B a_313_315# w_128_315# pfet w=16u l=2u
++  ad=0.12n pd=56u as=0.12n ps=56u
+M1025 GND a_86_152# Y Gnd nfet w=4u l=2u
++  ad=0.102n pd=48u as=0.102n ps=48u
+M1026 a_249_315# B a_86_152# w_128_315# pfet w=16u l=2u
++  ad=0.12n pd=56u as=0.12n ps=56u
+M1027 VDD A a_473_311# w_128_315# pfet w=24u l=2u
++  ad=0.151n pd=77u as=0.144n ps=72u
+.ends
+

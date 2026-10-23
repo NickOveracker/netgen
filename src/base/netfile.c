@@ -1211,14 +1211,15 @@ void NetgenFileCell(char *name)
 void WriteNetgenFile(char *name, char *filename)
 {
   char FileName[500];
-  int i, filenum;
+  int i;
 
   if (filename == NULL || strlen(filename) == 0) 
     SetExtension(FileName, name, NETGEN_EXTENSION);
   else 
     SetExtension(FileName, filename, NETGEN_EXTENSION);
 
-  if ((filenum = open(FileName, O_WRONLY | O_CREAT | O_TRUNC, 
+  /* NetgenFileCell() writes to File, so open the file there */
+  if ((File = open(FileName, O_WRONLY | O_CREAT | O_TRUNC, 
 		   FILE_ACCESS_BITS)) == -1) {
     Printf("Unable to open NETGEN file %s\n", FileName);
     return;
@@ -1227,8 +1228,8 @@ void WriteNetgenFile(char *name, char *filename)
 
   /* write out a sanity check */
   i = N_BYTE_ORDER;
-  write(filenum, &i, sizeof(i));
-  write(filenum, &i, sizeof(i));
+  write(File, &i, sizeof(i));
+  write(File, &i, sizeof(i));
   /* create top level call */
   if (LookupCell(name) != NULL) NetgenFileCell(name);
 

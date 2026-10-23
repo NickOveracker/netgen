@@ -1194,7 +1194,8 @@ void FreeObject(struct objlist *ob)
      /* All other records */
      if (ob->instance.name != NULL) FreeString(ob->instance.name);
   }
-  if (ob->model.class != NULL) FreeString(ob->model.class);
+  /* A port keeps its port number in the model union, not a string */
+  if (!IsPort(ob) && ob->model.class != NULL) FreeString(ob->model.class);
   FREE(ob);
 }
 

@@ -16,6 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file copying.  If not, write to
 the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. */
 
+/*
+ * Changes in the WebAssembly fork.
+ * Modified in the WebAssembly fork of netgen, https://github.com/NickOveracker/netgen
+ * (branch wasm).  Changes, with their dates:
+ *   2026-10-23  Write netgen-format files to the file that was opened
+ * End of the changes notice.
+ */
+
 /* netfile.c  --  support routines for reading/writing netlist files */
 
 #include "config.h"

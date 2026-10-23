@@ -16,6 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file copying.  If not, write to
 the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. */
 
+/*
+ * Changes in the WebAssembly fork.
+ * Modified in the WebAssembly fork of netgen, https://github.com/NickOveracker/netgen
+ * (branch wasm).  Changes, with their dates:
+ *   2026-10-23  Use time_t for the values time() and ctime() read and write
+ * End of the changes notice.
+ */
+
 /* timing.c -- routines to measure execution time of NETGEN commands */
 
 /*************************************************************************/

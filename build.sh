@@ -65,9 +65,16 @@ rm -rf "$FS"
 mkdir -p "$FS/tcl/library" "$FS/netgen/tcl"
 cp "$TCL_OUT/install/lib/tcl$TCL_VERSION"/*.tcl "$TCL_OUT/install/lib/tcl$TCL_VERSION/tclIndex" "$FS/tcl/library/"
 cp -r "$TCL_OUT/install/lib/tcl$TCL_VERSION/opt0.4" "$FS/tcl/library/"
+# The copy is a modified file, so it says so (GPL, paragraph 2a).
 sed -e 's%^load TCL_DIR/tclnetgenSHDLIB_EXT$%load {} Tclnetgen%' \
     -e 's%TCL_DIR%/netgen/tcl%g' -e 's%SHDLIB_EXT%%g' \
-    src/tcltk/netgen.tcl.in > "$FS/netgen/tcl/netgen.tcl"
+    -e '1i\
+# Modified for the WebAssembly fork of netgen (https://github.com/NickOveracker/netgen,\
+# branch wasm) by its build.sh, which writes this copy of src/tcltk/netgen.tcl.in.\
+# Changes, with their dates:\
+#   2026-10-23  The "load" of the shared object tclnetgen.so is "load {} Tclnetgen",\
+#               netgen being linked into the WebAssembly module as a static package.\
+' src/tcltk/netgen.tcl.in > "$FS/netgen/tcl/netgen.tcl"
 grep -q '^load {} Tclnetgen$' "$FS/netgen/tcl/netgen.tcl" || { echo "netgen.tcl: load line not replaced" >&2; exit 1; }
 
 # --- netgen --------------------------------------------------------------------

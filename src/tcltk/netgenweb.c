@@ -1,4 +1,5 @@
 /*----------------------------------------------------------------------*/
+
 /* netgenweb.c --							*/
 /*									*/
 /*	Entry points for the WebAssembly build of netgen (see build.sh	*/
@@ -16,6 +17,21 @@
 /*	channels, which Emscripten passes to Module.print and		*/
 /*	Module.printErr; both are flushed after every evaluation.	*/
 /*----------------------------------------------------------------------*/
+/* This file is part of the WebAssembly fork of netgen and, like	*/
+/* netgen, is free software: you can redistribute it and/or modify it	*/
+/* under the terms of the GNU General Public License as published by	*/
+/* the Free Software Foundation (any version).  It is distributed	*/
+/* WITHOUT ANY WARRANTY; see the GNU General Public License, in the	*/
+/* file Copying at the top of the repository, for more details.	*/
+/*----------------------------------------------------------------------*/
+
+/*
+ * Changes in the WebAssembly fork.
+ * Added in the WebAssembly fork of netgen, https://github.com/NickOveracker/netgen
+ * (branch wasm), on 2026-10-23.  Changes, with their dates:
+ *   2026-10-23  Add a WebAssembly build of netgen, with Tcl
+ * End of the changes notice.
+ */
 
 #include <stdio.h>
 #include <tcl.h>

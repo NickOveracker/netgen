@@ -186,10 +186,20 @@ char *ReadExt(char *fname, int doflat, int *fnum)
     if ((pptr = strrchr(fname, '.')) != NULL) *pptr = '\0';
   }
 
-  /* Make sure all .ext file reading is case sensitive */
-  matchfunc = match;
-  matchintfunc = matchfile;
-  hashfunc = hashcase;
+  /* All .ext file reading is case sensitive.  However:  if a	*/
+  /* SPICE file was read before it, then it will be forced to be	*/
+  /* case insensitive, with a warning, as for verilog.  Switching	*/
+  /* the hash functions would lose the cells already read.		*/
+
+  if (matchfunc == matchnocase) {
+     Printf("Warning:  A case-insensitive file has been read and so the "
+		".ext file must be treated case-insensitive to match.\n");
+  }
+  else {
+     matchfunc = match;
+     matchintfunc = matchfile;
+     hashfunc = hashcase;
+  }
 
   if (LookupCellFile(fname, filenum) != NULL) {
     Printf("Error:  Duplicate cell name \"%s\"!\n", fname);
@@ -941,10 +951,20 @@ char *ReadSim(char *fname, int *fnum)
     }    
   }
 
-  /* Make sure all .sim file reading is case sensitive */
-  matchfunc = match;
-  matchintfunc = matchfile;
-  hashfunc = hashcase;
+  /* All .sim file reading is case sensitive.  However:  if a	*/
+  /* SPICE file was read before it, then it will be forced to be	*/
+  /* case insensitive, with a warning, as for verilog.  Switching	*/
+  /* the hash functions would lose the cells already read.		*/
+
+  if (matchfunc == matchnocase) {
+     Printf("Warning:  A case-insensitive file has been read and so the "
+		".sim file must be treated case-insensitive to match.\n");
+  }
+  else {
+     matchfunc = match;
+     matchintfunc = matchfile;
+     hashfunc = hashcase;
+  }
 
   CellDef(fname, filenum);
 

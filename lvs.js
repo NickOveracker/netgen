@@ -284,7 +284,11 @@ export class ResultWindow {
             }
         }
         // Pins.
-        if(c.pins && c.pins.length === 2) {
+        const named = list => (list || []).filter(Boolean);
+        if(c.pins && c.pins.length === 2 && !named(c.pins[0]).length && !named(c.pins[1]).length) {
+            // netgen compares pins only once the circuits match.
+            section.append(h("p", {class: "res-sub"}, "Pins: not compared, since the circuits differ."));
+        } else if(c.pins && c.pins.length === 2) {
             const [p1, p2] = c.pins, count = Math.max(p1.length, p2.length);
             const bad = [...Array(count).keys()].some(i => NO_MATCH.test(p1[i] || "") || NO_MATCH.test(p2[i] || "") || p1[i] === undefined || p2[i] === undefined);
             const pins = h("details", {class: "res-pins", ...(bad ? {open: ""} : {})}, h("summary", {}, bad ? "Pins: some don't match" : `Pins: ${count}, all matched`));

@@ -7,6 +7,7 @@
 // browser's storage, as in the IRSIM and Magic apps.
 
 import {Session} from "./session.js";
+import {LvsRunner, ResultWindow, circuitArg, lvsCommand, verdictOf} from "./lvs.js";
 import {FloatingWindow, topEdgeResizer, paneResizer} from "./floating-window.js";
 import {menuBar, closeMenus} from "./menu.js";
 import {ask, setHomeFocus} from "./dialog.js";
@@ -41,8 +42,7 @@ const NETLIST = /\.(spice|spi|sp|cir|ckt|cdl|net|netlist|sim|ext|v|vg|ntk)$/i;
 const here = path => new URL(path, import.meta.url);
 
 let project = null;          // {name, files: [{path, data}], store, synced, compare: {circuit1, circuit2, setup, blackbox}}
-let lastResult = null;       // {verdict, kind, report, json, command, ms}
-let capturedErrors = null;   // Error lines printed while Run LVS runs
+let lastResult = null;       // From LvsRunner.compare(): {final, kind, short, report, json, command, ms, compare}
 
 // ----- Output
 
@@ -75,8 +75,8 @@ const encoder = new TextEncoder();
 
 const session = new Session({
     onOutput: (text, error) => {
-        if(error && capturedErrors && text.trim()) {
-            capturedErrors.push(text.trim());
+        if(error) {
+            lvs.noteError(text);
         }
         print(text, error ? "error" : null);
     },
@@ -171,45 +171,7 @@ function defaultCompare(files) {
     return {circuit1: [a || "", ""], circuit2: [b || "", ""], setup: setups.find(p => /setup/i.test(p)) || setups[0] || "", blackbox: false};
 }
 
-function circuitArg([file, cell]) {
-    const brace = s => (/^[^\s{}\\"[\]$;]+$/.test(s) ? s : `{${s}}`);
-    return cell ? `{${brace(file)} ${brace(cell)}}` : brace(file);
-}
-
-function lvsCommand(compare) {
-    const setup = compare.setup || "nosetup";
-    return `lvs ${circuitArg(compare.circuit1)} ${circuitArg(compare.circuit2)} ${setup} comp.out -json` +
-        (compare.blackbox ? " -blackbox" : "");
-}
-
-// netgen's verdict, from its report: the "Final result" and anything before
-// it that says the netlists don't match.
-function verdictOf(report) {
-    const i = report.lastIndexOf("Final result:");
-    // The final result, without the lone "." netgen prints after it.
-    let final = i < 0 ? "" : report.slice(i + 13).split(/\n\s*\n|\nThe following/)[0].replace(/\s+/g, " ").trim().replace(/(\s+\.)+$/, "");
-    if(/Netlists do not match/.test(report.slice(0, i)) && !/do not match/.test(final)) {
-        final = "Netlists do not match. " + final;
-    }
-    let kind, short;
-    if(i < 0) {
-        kind = "fail";
-        short = "no result";
-    } else if(/do not match|failed|not unique|locally but not globally/i.test(report.slice(0, i) + final)) {
-        kind = "fail";
-        short = "do not match";
-    } else if(/property errors|port errors|Property errors were found/i.test(report.slice(i))) {
-        kind = "warn";
-        short = "match, with property errors";
-    } else if(/match/i.test(final)) {
-        kind = "pass";
-        short = "match";
-    } else {
-        kind = "warn";
-        short = final.toLowerCase();
-    }
-    return {final: final || "netgen gave no final result (see the console)", kind, short};
-}
+const lvs = new LvsRunner({run, readFile: path => session.readFile(path)});
 
 async function runLvs() {
     if(!project) {
@@ -221,33 +183,12 @@ async function runLvs() {
         compareWindow.open();
         return;
     }
-    // A fresh database each time, so edited files are read again, and no
-    // report from an earlier run that could be taken for this one's.
-    await run("reinitialize; file delete -force comp.out comp.json", {echo: false});
-    const command = lvsCommand(compare);
-    const t0 = performance.now();
-    capturedErrors = [];
-    const reply = await run(command);
-    const errors = capturedErrors;
-    capturedErrors = null;
-    if(!reply || reply.ended) {
+    const result = await lvs.compare(compare);
+    if(!result) {
         return;
     }
-    let report = "", json = null;
-    try {
-        report = decoder.decode(await session.readFile("comp.out"));
-    } catch(e) {
-        // No report: netgen stopped early; the console says why.
-    }
-    try {
-        json = JSON.parse(decoder.decode(await session.readFile("comp.json")));
-    } catch(e) {
-        json = null;
-    }
-    const verdict = report ? verdictOf(report) :
-        {final: `netgen wrote no report: ${(reply.result || errors[errors.length - 1] || "see the console").trim()}`, kind: "fail", short: "no result"};
-    lastResult = {...verdict, report, json, command, ms: performance.now() - t0, compare: structuredClone(compare)};
-    print(`Result: ${verdict.final}`, verdict.kind === "pass" ? "info" : "error");
+    lastResult = result;
+    print(`Result: ${result.final}`, result.kind === "pass" ? "info" : "error");
     resultWindow.open();
     resultWindow.render();
     updateStatus();
@@ -620,149 +561,8 @@ class CompareWindow {
 
 const compareWindow = new CompareWindow();
 
-// ----- Result window: what netgen found
-
-function h(tag, attrs = {}, ...children) {
-    const el = document.createElement(tag);
-    for(const [k, v] of Object.entries(attrs)) {
-        k === "class" ? (el.className = v) : el.setAttribute(k, v);
-    }
-    for(const child of children.flat()) {
-        if(child !== null && child !== undefined && child !== false) {
-            el.append(child instanceof Node ? child : String(child));
-        }
-    }
-    return el;
-}
-
-const NO_MATCH = /^\(no matching/;
-
-class ResultWindow {
-    constructor() {
-        this.fw = null;
-    }
-
-    isOpen() {
-        return Boolean(this.fw);
-    }
-
-    open() {
-        if(this.fw) {
-            this.fw.raise();
-            return;
-        }
-        const x = Math.min(468, Math.max(12, desktop.clientWidth - 560));
-        this.fw = new FloatingWindow(desktop, {
-            title: "Result", x, y: 12, width: Math.min(620, desktop.clientWidth - x - 12), height: Math.max(200, desktop.clientHeight - 24),
-            onClose: () => this.close(),
-        });
-        this.fw.body.classList.add("res-body");
-        this.render();
-    }
-
-    close() {
-        this.fw?.remove();
-        this.fw = null;
-    }
-
-    render() {
-        if(!this.fw) {
-            return;
-        }
-        const body = this.fw.body;
-        body.textContent = "";
-        if(!lastResult) {
-            body.append(h("p", {class: "res-empty"}, project ? "Run LVS from the Compare window to see what netgen finds." :
-                "Open a project or an example."));
-            return;
-        }
-        const r = lastResult;
-        const icon = {pass: "✓", warn: "!", fail: "✕"}[r.kind];
-        body.append(h("div", {class: `res-verdict res-${r.kind}`}, h("span", {class: "res-icon", "aria-hidden": "true"}, icon),
-            h("div", {}, h("strong", {}, r.final), h("div", {class: "res-sub"},
-                `${circuitArg(r.compare.circuit1)} vs ${circuitArg(r.compare.circuit2)} · ${(r.ms / 1000).toFixed(2)} s`))));
-        const actions = h("div", {class: "res-actions"},
-            h("button", {type: "button", "data-act": "report"}, "Download report"),
-            r.json ? h("button", {type: "button", "data-act": "json"}, "Download JSON") : null);
-        actions.addEventListener("click", event => {
-            const act = event.target.closest("button")?.dataset.act;
-            if(act === "report") {
-                saveBlob("comp.out", new Blob([r.report], {type: "text/plain"}));
-            } else if(act === "json") {
-                saveBlob("comp.json", new Blob([JSON.stringify(r.json, null, 1)], {type: "application/json"}));
-            }
-        });
-        body.append(actions);
-        for(const cell of r.json || []) {
-            body.append(this.cell(cell));
-        }
-        body.append(h("details", {class: "res-report"}, h("summary", {}, "Full report (comp.out)"), h("pre", {}, r.report || "(none)")));
-    }
-
-    // One compared cell (pair of subcircuits) from netgen's JSON.
-    cell(c) {
-        const [n1, n2] = c.name || ["circuit 1", "circuit 2"];
-        const section = h("section", {class: "res-cell"}, h("h3", {}, `${n1} ↔ ${n2}`));
-        // Devices by class, and nets.
-        const classes = new Map();
-        (c.devices || []).forEach((list, side) => {
-            for(const [cls, count] of list) {
-                classes.set(cls, classes.get(cls) || [0, 0]);
-                classes.get(cls)[side] = count;
-            }
-        });
-        const rows = [...classes].map(([cls, [a, b]]) => h("tr", {class: a !== b ? "res-diff" : ""}, h("td", {}, cls), h("td", {}, a), h("td", {}, b)));
-        const [nets1, nets2] = c.nets || [];
-        rows.push(h("tr", {class: nets1 !== nets2 ? "res-diff" : ""}, h("td", {}, h("em", {}, "nets")), h("td", {}, nets1), h("td", {}, nets2)));
-        section.append(h("table", {class: "res-table"}, h("thead", {}, h("tr", {}, h("th", {}, "Devices"), h("th", {}, n1), h("th", {}, n2))),
-            h("tbody", {}, rows)));
-        // Nets and devices that differ: pairs of fragments, one per circuit.
-        const fragments = (groups, title, describe) => {
-            if(!groups || !groups.length) {
-                return;
-            }
-            section.append(h("h4", {}, title));
-            for(const [left, right] of groups) {
-                section.append(h("div", {class: "res-pair"}, h("div", {}, (left || []).map(describe)), h("div", {}, (right || []).map(describe))));
-            }
-        };
-        fragments(c.badnets, "Nets that differ", ([name, conns]) => h("div", {class: "res-frag" + (NO_MATCH.test(name) ? " res-none" : "")},
-            h("strong", {}, name), (conns || []).filter(([cls]) => cls).map(([cls, pin, count]) => h("div", {}, `${cls}/${pin} × ${count}`))));
-        fragments(c.badelements, "Devices that differ", ([name, pins]) => h("div", {class: "res-frag" + (NO_MATCH.test(name) ? " res-none" : "")},
-            h("strong", {}, name), (pins || []).filter(([pin]) => pin).map(([pin, fanout]) => h("div", {}, `${pin}: net with ${fanout} connections`))));
-        // Property differences: pairs of instances with their values.
-        if(c.properties && c.properties.length) {
-            section.append(h("h4", {}, `Property differences (${c.properties.length})`));
-            const table = h("table", {class: "res-table res-props"}, h("thead", {}, h("tr", {}, h("th", {}, n1), h("th", {}, n2))));
-            const tbody = h("tbody");
-            for(const pair of c.properties.slice(0, 200)) {
-                const side = s => (s ? [h("strong", {}, s[0]), " ", (s[1] || []).map(([k, v]) => `${k}=${v}`).join(" ")] : "");
-                tbody.append(h("tr", {}, h("td", {}, side(pair[0])), h("td", {}, side(pair[1]))));
-            }
-            table.append(tbody);
-            section.append(table);
-            if(c.properties.length > 200) {
-                section.append(h("p", {class: "res-sub"}, `…and ${c.properties.length - 200} more in the full report.`));
-            }
-        }
-        // Pins.
-        if(c.pins && c.pins.length === 2) {
-            const [p1, p2] = c.pins, count = Math.max(p1.length, p2.length);
-            const bad = [...Array(count).keys()].some(i => NO_MATCH.test(p1[i] || "") || NO_MATCH.test(p2[i] || "") || p1[i] === undefined || p2[i] === undefined);
-            const pins = h("details", {class: "res-pins", ...(bad ? {open: ""} : {})}, h("summary", {}, bad ? "Pins: some don't match" : `Pins: ${count}, all matched`));
-            const tbody = h("tbody");
-            for(let i = 0; i < count; i++) {
-                const a = p1[i] ?? "", b = p2[i] ?? "";
-                tbody.append(h("tr", {class: NO_MATCH.test(a) || NO_MATCH.test(b) || !a || !b ? "res-diff" : ""}, h("td", {}, a), h("td", {}, b)));
-            }
-            pins.append(h("table", {class: "res-table"}, h("thead", {}, h("tr", {}, h("th", {}, n1), h("th", {}, n2))), tbody));
-            section.append(pins);
-        }
-        return section;
-    }
-}
-
-const resultWindow = new ResultWindow();
+const resultWindow = new ResultWindow({desktop, saveBlob, result: () => lastResult,
+    emptyText: () => (project ? "Run LVS from the Compare window to see what netgen finds." : "Open a project or an example.")});
 
 // ----- Files window: view and edit the project's files
 

@@ -5,7 +5,7 @@ netgen, the netlist comparison (LVS) tool from Open Circuit Design, compiled to 
 process kits' setup files) is written in Tcl, so the module carries a Tcl 9 interpreter; it runs in a plain Web Worker
 and needs no special server headers.
 
-The app is what this folder holds. netgen's own source, with its original README and native build, is in `src/`.
+The app is at https://netgen.stixu.io/ and is what this folder holds. netgen's own source, with its original README and native build, is in `src/`.
 
 ## Building
 

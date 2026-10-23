@@ -5,6 +5,41 @@
 // and by the Magic web app's lvs command (from its netgen submodule).
 
 import {FloatingWindow} from "./floating-window.js";
+import {t, maybe, register} from "./i18n.js";
+
+// The page's words in Japanese (i18n.js), here so that every app that loads this module has
+// them.  netgen's report and verdict lines, and net, device and cell names, stay as they are.
+register({
+    // Verdicts (short, for status lines) and the final results the page writes
+    "no result": "結果なし",
+    "do not match": "不一致",
+    "match, with property errors": "一致（プロパティエラーあり）",
+    "match": "一致",
+    "netgen gave no final result (see the console)": "netgen は最終結果を出しませんでした（コンソールを参照してください）",
+    "netgen wrote no report: {why}": "netgen はレポートを書き出しませんでした：{why}",
+    "see the console": "コンソールを参照してください",
+    // The Result window
+    "Result": "結果",
+    "{file}, cell {cell}": "{file}、セル {cell}",
+    "{circuit1} vs {circuit2} · {seconds} s": "{circuit1} 対 {circuit2} · {seconds} 秒",
+    "Download report": "レポートをダウンロード",
+    "Download JSON": "JSON をダウンロード",
+    "Full report (comp.out)": "レポート全文（comp.out）",
+    "(none)": "（なし）",
+    "circuit 1": "回路 1",
+    "circuit 2": "回路 2",
+    "nets": "ネット",
+    "Devices": "デバイス",
+    "Nets that differ": "異なるネット",
+    "Devices that differ": "異なるデバイス",
+    "{pin}: net with 1 connection": "{pin}：接続 1 個のネット",
+    "{pin}: net with {n} connections": "{pin}：接続 {n} 個のネット",
+    "Property differences ({n})": "プロパティの違い（{n} 件）",
+    "…and {n} more in the full report.": "…ほか {n} 件はレポート全文にあります。",
+    "Pins: not compared, since the circuits differ.": "ピン：回路が異なるため比較していません。",
+    "Pins: some don't match": "ピン：一致しないものがあります",
+    "Pins: {n}, all matched": "ピン：{n} 個、すべて一致",
+});
 
 const STYLES = `
 .res-body { --pass: #1e6b3a; --pass-bg: #e3f3e8; --warn: #8a5a00; --warn-bg: #fff2d6; --fail: #b3261e; --fail-bg: #fbe5e3;
@@ -100,6 +135,19 @@ export function verdictOf(report) {
     return {final: final || "netgen gave no final result (see the console)", kind, short};
 }
 
+// A result's final line and short verdict in the page's language: the page's own words are
+// translated, netgen's are shown as netgen wrote them.
+export function finalText(result) {
+    if(result.noReport !== undefined) {
+        return t("netgen wrote no report: {why}", {why: result.noReport || t("see the console")});
+    }
+    return maybe(result.final);
+}
+
+export function shortText(result) {
+    return maybe(result.short);
+}
+
 // Runs "lvs" through a page's command runner and reads the report and JSON it
 // writes.  host: {run(command, {echo}) -> {result, code, ended}, readFile(path) -> Uint8Array}.
 // The page passes the error lines netgen prints to noteError(), so that a run
@@ -147,9 +195,10 @@ export class LvsRunner {
             json = null;
         }
         const errors = this.lastErrors;
+        // Without a report, why: what the command returned or the last error line (noReport, for finalText()).
+        const why = (reply.result || errors[errors.length - 1] || "").trim();
         const verdict = report ? verdictOf(report) :
-            {final: `netgen wrote no report: ${(reply.result || errors[errors.length - 1] || "see the console").trim()}`, kind: "fail",
-                short: "no result"};
+            {final: `netgen wrote no report: ${why || "see the console"}`, noReport: why, kind: "fail", short: "no result"};
         return {...verdict, report, json, command, ms: performance.now() - t0, compare: structuredClone(compare)};
     }
 }
@@ -172,10 +221,11 @@ function h(tag, attrs = {}, ...children) {
 const NO_MATCH = /^\(no matching/;
 
 // A circuit for people to read: "file.spice, cell top" (circuitArg() is the Tcl form).
-const describe = ([file, cell]) => (cell ? `${file}, cell ${cell}` : file);
+const describe = ([file, cell]) => (cell ? t("{file}, cell {cell}", {file, cell}) : file);
 
 // The Result window.  host: {desktop, saveBlob, result() (the latest result, or null),
-// emptyText() (what to say when there is none)}.
+// emptyText() (what to say when there is none)}.  Its owner calls render() when the
+// language changes.
 export class ResultWindow {
     constructor(host) {
         this.host = host;
@@ -220,11 +270,12 @@ export class ResultWindow {
         }
         const icon = {pass: "✓", warn: "!", fail: "✕"}[r.kind];
         body.append(h("div", {class: `res-verdict res-${r.kind}`}, h("span", {class: "res-icon", "aria-hidden": "true"}, icon),
-            h("div", {}, h("strong", {}, r.final), h("div", {class: "res-sub"},
-                `${describe(r.compare.circuit1)} vs ${describe(r.compare.circuit2)} · ${(r.ms / 1000).toFixed(2)} s`))));
+            h("div", {}, h("strong", {}, finalText(r)), h("div", {class: "res-sub"},
+                t("{circuit1} vs {circuit2} · {seconds} s", {circuit1: describe(r.compare.circuit1), circuit2: describe(r.compare.circuit2),
+                    seconds: (r.ms / 1000).toFixed(2)})))));
         const actions = h("div", {class: "res-actions"},
-            h("button", {type: "button", "data-act": "report"}, "Download report"),
-            r.json ? h("button", {type: "button", "data-act": "json"}, "Download JSON") : null);
+            h("button", {type: "button", "data-act": "report"}, t("Download report")),
+            r.json ? h("button", {type: "button", "data-act": "json"}, t("Download JSON")) : null);
         actions.addEventListener("click", event => {
             const act = event.target.closest("button")?.dataset.act;
             if(act === "report") {
@@ -237,12 +288,12 @@ export class ResultWindow {
         for(const cell of r.json || []) {
             body.append(this.cell(cell));
         }
-        body.append(h("details", {class: "res-report"}, h("summary", {}, "Full report (comp.out)"), h("pre", {}, r.report || "(none)")));
+        body.append(h("details", {class: "res-report"}, h("summary", {}, t("Full report (comp.out)")), h("pre", {}, r.report || t("(none)"))));
     }
 
     // One compared cell (pair of subcircuits) from netgen's JSON.
     cell(c) {
-        const [n1, n2] = c.name || ["circuit 1", "circuit 2"];
+        const [n1, n2] = c.name || [t("circuit 1"), t("circuit 2")];
         const section = h("section", {class: "res-cell"}, h("h3", {}, `${n1} ↔ ${n2}`));
         // Devices by class, and nets.
         const classes = new Map();
@@ -254,8 +305,8 @@ export class ResultWindow {
         });
         const rows = [...classes].map(([cls, [a, b]]) => h("tr", {class: a !== b ? "res-diff" : ""}, h("td", {}, cls), h("td", {}, a), h("td", {}, b)));
         const [nets1, nets2] = c.nets || [];
-        rows.push(h("tr", {class: nets1 !== nets2 ? "res-diff" : ""}, h("td", {}, h("em", {}, "nets")), h("td", {}, nets1), h("td", {}, nets2)));
-        section.append(h("table", {class: "res-table"}, h("thead", {}, h("tr", {}, h("th", {}, "Devices"), h("th", {}, n1), h("th", {}, n2))),
+        rows.push(h("tr", {class: nets1 !== nets2 ? "res-diff" : ""}, h("td", {}, h("em", {}, t("nets"))), h("td", {}, nets1), h("td", {}, nets2)));
+        section.append(h("table", {class: "res-table"}, h("thead", {}, h("tr", {}, h("th", {}, t("Devices")), h("th", {}, n1), h("th", {}, n2))),
             h("tbody", {}, rows)));
         // Nets and devices that differ: pairs of fragments, one per circuit.
         const fragments = (groups, title, describe) => {
@@ -267,13 +318,14 @@ export class ResultWindow {
                 section.append(h("div", {class: "res-pair"}, h("div", {}, (left || []).map(describe)), h("div", {}, (right || []).map(describe))));
             }
         };
-        fragments(c.badnets, "Nets that differ", ([name, conns]) => h("div", {class: "res-frag" + (NO_MATCH.test(name) ? " res-none" : "")},
+        fragments(c.badnets, t("Nets that differ"), ([name, conns]) => h("div", {class: "res-frag" + (NO_MATCH.test(name) ? " res-none" : "")},
             h("strong", {}, name), (conns || []).filter(([cls]) => cls).map(([cls, pin, count]) => h("div", {}, `${cls}/${pin} × ${count}`))));
-        fragments(c.badelements, "Devices that differ", ([name, pins]) => h("div", {class: "res-frag" + (NO_MATCH.test(name) ? " res-none" : "")},
-            h("strong", {}, name), (pins || []).filter(([pin]) => pin).map(([pin, fanout]) => h("div", {}, `${pin}: net with ${fanout} connections`))));
+        fragments(c.badelements, t("Devices that differ"), ([name, pins]) => h("div", {class: "res-frag" + (NO_MATCH.test(name) ? " res-none" : "")},
+            h("strong", {}, name), (pins || []).filter(([pin]) => pin).map(([pin, fanout]) => h("div", {},
+                t(fanout === 1 ? "{pin}: net with 1 connection" : "{pin}: net with {n} connections", {pin, n: fanout})))));
         // Property differences: pairs of instances with their values.
         if(c.properties && c.properties.length) {
-            section.append(h("h4", {}, `Property differences (${c.properties.length})`));
+            section.append(h("h4", {}, t("Property differences ({n})", {n: c.properties.length})));
             const table = h("table", {class: "res-table res-props"}, h("thead", {}, h("tr", {}, h("th", {}, n1), h("th", {}, n2))));
             const tbody = h("tbody");
             for(const pair of c.properties.slice(0, 200)) {
@@ -283,18 +335,18 @@ export class ResultWindow {
             table.append(tbody);
             section.append(table);
             if(c.properties.length > 200) {
-                section.append(h("p", {class: "res-sub"}, `…and ${c.properties.length - 200} more in the full report.`));
+                section.append(h("p", {class: "res-sub"}, t("…and {n} more in the full report.", {n: c.properties.length - 200})));
             }
         }
         // Pins.
         const named = list => (list || []).filter(Boolean);
         if(c.pins && c.pins.length === 2 && !named(c.pins[0]).length && !named(c.pins[1]).length) {
             // netgen compares pins only once the circuits match.
-            section.append(h("p", {class: "res-sub"}, "Pins: not compared, since the circuits differ."));
+            section.append(h("p", {class: "res-sub"}, t("Pins: not compared, since the circuits differ.")));
         } else if(c.pins && c.pins.length === 2) {
             const [p1, p2] = c.pins, count = Math.max(p1.length, p2.length);
             const bad = [...Array(count).keys()].some(i => NO_MATCH.test(p1[i] || "") || NO_MATCH.test(p2[i] || "") || p1[i] === undefined || p2[i] === undefined);
-            const pins = h("details", {class: "res-pins", ...(bad ? {open: ""} : {})}, h("summary", {}, bad ? "Pins: some don't match" : `Pins: ${count}, all matched`));
+            const pins = h("details", {class: "res-pins", ...(bad ? {open: ""} : {})}, h("summary", {}, bad ? t("Pins: some don't match") : t("Pins: {n}, all matched", {n: count})));
             const tbody = h("tbody");
             for(let i = 0; i < count; i++) {
                 const a = p1[i] ?? "", b = p2[i] ?? "";

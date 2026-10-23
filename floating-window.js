@@ -11,6 +11,10 @@
 // resizable from its top edge, and paneResizer() a side pane (the Files
 // window's list) resizable from its right edge.
 
+import {t, maybe, register, onLanguageChange} from "./i18n.js";
+
+register({"Close": "閉じる", "Expand": "展開", "Collapse": "折りたたむ", "Resize": "サイズを変更"});
+
 const STYLES = `
 .fw-window { position: absolute; display: flex; flex-direction: column; box-sizing: border-box;
   background: var(--panel); color: var(--fg); border: 1px solid var(--rule);
@@ -73,7 +77,7 @@ export class FloatingWindow {
         el.className = "fw-window";
         el.innerHTML = '<header class="fw-header" tabindex="0"><span class="fw-title"></span>' +
             '<button type="button" class="fw-button fw-collapse"></button>' +
-            '<button type="button" class="fw-button fw-close" aria-label="Close" title="Close">✕</button></header>' +
+            '<button type="button" class="fw-button fw-close">✕</button></header>' +
             '<div class="fw-body"></div>' +
             ["n", "s", "e", "w", "ne", "nw", "se", "sw"].map(edge =>
                 `<div class="fw-resize fw-${edge}" data-edge="${edge}"></div>`).join("");
@@ -81,6 +85,8 @@ export class FloatingWindow {
         this.body = el.querySelector(".fw-body");
         this.setTitle(options.title || "");
         desktop.appendChild(el);
+        // Titles are given in English and shown in the page's language.
+        const stop = onLanguageChange(() => (el.isConnected ? this.translate() : stop()));
 
         this.geometry = {x: options.x, y: options.y, width: options.width, height: options.height,
             collapsed: false};
@@ -90,8 +96,19 @@ export class FloatingWindow {
     }
 
     setTitle(title) {
-        this.element.querySelector(".fw-title").textContent = title;
-        this.element.setAttribute("aria-label", title);
+        this.title = title;
+        this.translate();
+    }
+
+    translate() {
+        this.element.querySelector(".fw-title").textContent = maybe(this.title);
+        this.element.setAttribute("aria-label", maybe(this.title));
+        const close = this.element.querySelector(".fw-close");
+        close.title = t("Close");
+        close.setAttribute("aria-label", t("Close"));
+        if(this.geometry) {
+            this.apply();
+        }
     }
 
     raise() {
@@ -143,7 +160,7 @@ export class FloatingWindow {
         el.classList.toggle("fw-collapsed", g.collapsed);
         const button = el.querySelector(".fw-collapse");
         button.textContent = g.collapsed ? "▸" : "▾";
-        button.setAttribute("aria-label", g.collapsed ? "Expand" : "Collapse");
+        button.setAttribute("aria-label", t(g.collapsed ? "Expand" : "Collapse"));
         button.title = button.getAttribute("aria-label");
         button.setAttribute("aria-expanded", String(!g.collapsed));
     }
@@ -253,10 +270,14 @@ export function topEdgeResizer(panel, desktop, {min = 34, minAbove = 120, label 
     const grip = document.createElement("div");
     grip.className = "fw-grip";
     grip.tabIndex = 0;
-    grip.title = label;
+    grip.title = maybe(label);
     grip.setAttribute("role", "separator");
     grip.setAttribute("aria-orientation", "horizontal");
-    grip.setAttribute("aria-label", label);
+    grip.setAttribute("aria-label", maybe(label));
+    onLanguageChange(() => {
+        grip.title = maybe(label);
+        grip.setAttribute("aria-label", maybe(label));
+    });
     panel.prepend(grip);
     const setHeight = height => {
         const max = Math.max(min, panel.offsetHeight + desktop.clientHeight - minAbove);
@@ -299,10 +320,14 @@ export function paneResizer(pane, {min = 80, minRest = 160, label = "Resize", st
     const grip = document.createElement("div");
     grip.className = "fw-vgrip";
     grip.tabIndex = 0;
-    grip.title = label;
+    grip.title = maybe(label);
     grip.setAttribute("role", "separator");
     grip.setAttribute("aria-orientation", "vertical");
-    grip.setAttribute("aria-label", label);
+    grip.setAttribute("aria-label", maybe(label));
+    onLanguageChange(() => {
+        grip.title = maybe(label);
+        grip.setAttribute("aria-label", maybe(label));
+    });
     pane.after(grip);
     const setWidth = (width, remember) => {
         const row = pane.parentElement;

@@ -8,7 +8,16 @@
 //                 Persistent, but only reachable through this page.
 //
 // The list of recent projects, and the folder handles needed to reopen disk
-// projects, are kept in IndexedDB too.
+// projects, are kept in IndexedDB too.  A store's label (for messages) is in the page's
+// language (i18n.js).
+
+import {t, register} from "./i18n.js";
+
+register({
+    'folder "{name}"': "フォルダー「{name}」",
+    "browser storage": "ブラウザーのストレージ",
+    'No permission to use the folder "{name}".': "フォルダー「{name}」を使う許可がありません。",
+});
 
 export const diskSupported = typeof window.showDirectoryPicker === "function";
 
@@ -93,7 +102,10 @@ export class DiskStore {
         this.handle = handle;
         this.id = id;
         this.name = handle.name;
-        this.label = `folder "${handle.name}"`;
+    }
+
+    get label() {
+        return t('folder "{name}"', {name: this.name});
     }
 
     static async pick() {
@@ -116,7 +128,7 @@ export class DiskStore {
         const options = {mode: "readwrite"};
         if(await entry.handle.queryPermission(options) !== "granted" &&
             await entry.handle.requestPermission(options) !== "granted") {
-            throw new Error(`No permission to use the folder "${entry.handle.name}".`);
+            throw new Error(t('No permission to use the folder "{name}".', {name: entry.handle.name}));
         }
         await store.remember();
         return store;
@@ -165,7 +177,10 @@ export class BrowserStore {
     constructor(name) {
         this.id = "browser:" + name;
         this.name = name;
-        this.label = "browser storage";
+    }
+
+    get label() {
+        return t("browser storage");
     }
 
     static async create(name) {

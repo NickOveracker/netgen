@@ -7,20 +7,150 @@
 // browser's storage, as in the IRSIM and Magic apps.
 
 import {Session} from "./session.js";
-import {LvsRunner, ResultWindow, circuitArg, lvsCommand, verdictOf} from "./lvs.js";
+import {LvsRunner, ResultWindow, circuitArg, lvsCommand, verdictOf, finalText, shortText} from "./lvs.js";
 import {FloatingWindow, topEdgeResizer, paneResizer} from "./floating-window.js";
 import {menuBar, closeMenus} from "./menu.js";
 import {ask, setHomeFocus} from "./dialog.js";
 import {readArchive, isArchive, stripCommonFolder, cleanPath, writeTarGz} from "./archive.js";
 import {receiveProject} from "./handoff.js";
 import {diskSupported, DiskStore, BrowserStore, recentProjects, reopen, forget} from "./storage.js";
+import {t, register, applyStatic, languageButton, onLanguageChange} from "./i18n.js";
 
 const $ = selector => document.querySelector(selector);
 const desktop = $("#desktop");
-topEdgeResizer($("#console"), desktop, {label: "Resize the console"});
 const log = $("#log");
 const commandInput = $("#command");
 const statusEl = $("#status");
+
+// The page's text in Japanese (i18n.js); the English is in the code.  netgen's own output and
+// report, commands, and net, device, cell and file names stay as they are.
+register({
+    // Menus and windows
+    "Page menu": "ページメニュー",
+    // The page (index.html)
+    "LVS netlist comparison · WebAssembly": "LVS ネットリスト比較 · WebAssembly",
+    "Help": "ヘルプ",
+    "Stop": "停止",
+    "Stop the command that is running": "実行中のコマンドを停止します",
+    "Loading…": "読み込み中…",
+    "Support on Ko-fi": "Ko-fi で支援",
+    "netgen windows": "netgen のウィンドウ",
+    "netgen console": "netgen のコンソール",
+    "Show or hide the console": "コンソールの表示／非表示",
+    "Project": "プロジェクト",
+    "Examples": "サンプル",
+    "Windows": "ウィンドウ",
+    "About": "情報",
+    "Compare": "比較",
+    "Files": "ファイル",
+    "Resize the console": "コンソールのサイズを変更",
+    "Resize the file list": "ファイル一覧の幅を変更",
+    "Open files…": "ファイルを開く…",
+    "Open folder (copy)…": "フォルダーを開く（コピー）…",
+    "Work in a folder on disk…": "ディスク上のフォルダーで作業…",
+    "Open a folder; reports netgen writes and your edits are saved into it":
+        "フォルダーを開きます。netgen が書き出すレポートと編集内容はそこに保存されます",
+    "Save project to a folder on disk…": "プロジェクトをディスク上のフォルダーに保存…",
+    "Copy this project into a folder and keep working there": "このプロジェクトをフォルダーにコピーし、そこで作業を続けます",
+    "Keep project in browser storage": "プロジェクトをブラウザーのストレージに保存",
+    "Saves into this browser (private to this site) and keeps it there":
+        "このブラウザー内（このサイト専用）に保存し、以後もそこに保存します",
+    "Needs Chrome, Edge or another Chromium browser (the File System Access API)":
+        "Chrome、Edge などの Chromium 系ブラウザーが必要です（File System Access API）",
+    "Reopen {name} (folder)": "{name} を再び開く（フォルダー）",
+    "Reopen {name} (browser storage)": "{name} を再び開く（ブラウザーのストレージ）",
+    "Forget recent projects…": "最近のプロジェクトを消去…",
+    "Forget the recent projects? Folders on disk are not touched.":
+        "最近のプロジェクトの一覧を消去しますか？ディスク上のフォルダーには手を加えません。",
+    "Forget the recent projects? This deletes {names} from browser storage. Folders on disk are not touched.":
+        "最近のプロジェクトの一覧を消去しますか？ブラウザーのストレージから {names} を削除します。ディスク上のフォルダーには手を加えません。",
+    "Run LVS": "LVS を実行",
+    "Restart netgen": "netgen を再起動",
+    "Download project (.tar.gz)": "プロジェクトをダウンロード（.tar.gz）",
+    "Inverter: layout vs schematic (match)": "インバーター：レイアウト対回路図（一致）",
+    "Inverter as exported from Stixu: floating n-well": "Stixu から書き出したインバーター：浮いた n ウェル",
+    "Full adder: two sizings (property errors)": "全加算器：2 通りのサイズ（プロパティエラー）",
+    "Full adder: a miswired gate": "全加算器：配線を誤ったゲート",
+    "4×4 multiplier: two sizings (338 transistors)": "4×4 乗算器：2 通りのサイズ（トランジスタ 338 個）",
+    "OpenRAM's D flip-flop: layout vs schematic (match)": "OpenRAM の D フリップフロップ：レイアウト対回路図（一致）",
+    "OpenRAM's sense amplifier: layout vs schematic (match)": "OpenRAM のセンスアンプ：レイアウト対回路図（一致）",
+    "OpenRAM's tristate buffer: layout vs schematic (match)": "OpenRAM のトライステートバッファー：レイアウト対回路図（一致）",
+    "OpenRAM's 6T SRAM cell: layout vs schematic (match)": "OpenRAM の 6T SRAM セル：レイアウト対回路図（一致）",
+    "netgen (Open Circuit Design)": "netgen（Open Circuit Design）",
+    "netgen upstream source": "netgen の本家のソース",
+    "netgen license (GPL)": "netgen のライセンス（GPL）",
+    "Web app license (GPL 2 or later)": "ウェブアプリのライセンス（GPL 2 以降）",
+    "Tcl license (BSD-style)": "Tcl のライセンス（BSD 系）",
+    "Emscripten runtime license (MIT)": "Emscripten ランタイムのライセンス（MIT）",
+    "This web app's source": "このウェブアプリのソース",
+    // The Compare window
+    "Circuit 1: usually the layout (extracted netlist)": "回路 1：ふつうはレイアウト（抽出したネットリスト）",
+    "Circuit 2: usually the schematic": "回路 2：ふつうは回路図",
+    "Netlist": "ネットリスト",
+    "Cell": "セル",
+    "(the file's top cell)": "（ファイルのトップセル）",
+    "Setup": "セットアップ",
+    "Treat empty subcircuits as black boxes": "空のサブサーキットをブラックボックスとして扱う",
+    "Swap": "入れ替え",
+    "Open a project or an example.": "プロジェクトかサンプルを開いてください。",
+    "(no netlists in the project)": "（プロジェクトにネットリストがありません）",
+    "none (netgen's defaults)": "なし（netgen の既定の設定）",
+    "{path} (project)": "{path}（プロジェクト）",
+    "{label} (built in)": "{label}（組み込み）",
+    "scmos (Magic): equate nfet/pfet with n/p": "scmos（Magic）：nfet/pfet を n/p と同一視",
+    "Run LVS from the Compare window to see what netgen finds.": "比較ウィンドウから LVS を実行すると、netgen が見つけたことがここに表示されます。",
+    // The Files window and its dialog
+    "Save": "保存",
+    "Write the file (Ctrl+S)": "ファイルを書き込みます（Ctrl+S）",
+    "Source": "実行",
+    "Run it as a Tcl script (source)": "Tcl スクリプトとして実行します（source）",
+    "New…": "新規…",
+    "Download": "ダウンロード",
+    "Project files": "プロジェクトのファイル",
+    "File contents": "ファイルの内容",
+    "({n} bytes: too big to show)": "（{n} バイト。大きすぎて表示できません）",
+    "New file": "新しいファイル",
+    "File name": "ファイル名",
+    "Create": "作成",
+    // The console and status
+    "Running {command}…": "{command} を実行中…",
+    "Ready": "準備完了",
+    " · not saved to {where}!": " · {where} に保存できていません！",
+    " · kept in {where}": " · {where} に保存中",
+    " · in memory only": " · メモリ上のみ",
+    "netgen keeps running in the browser; Project > Restart netgen starts it afresh.":
+        "netgen はブラウザー内で動き続けます。「プロジェクト」>「netgen を再起動」で最初からやり直せます。",
+    "netgen isn't running: open a project or an example.": "netgen が実行されていません。プロジェクトかサンプルを開いてください。",
+    "Choose two netlists to compare in the Compare window.": "比較ウィンドウで、比較する 2 つのネットリストを選んでください。",
+    "Result: {verdict}": "結果：{verdict}",
+    "netgen could not start.": "netgen を起動できませんでした。",
+    "No files to load.": "読み込むファイルがありません。",
+    "Opened {name}: {files}": "{name} を開きました：{files}",
+    "Opened {name}: no files yet": "{name} を開きました：まだファイルはありません",
+    "Loading {name}…": "{name} を読み込み中…",
+    "Couldn't load the example {url}: HTTP {status}": "サンプル {url} を読み込めませんでした：HTTP {status}",
+    "Restarting netgen.": "netgen を再起動します。",
+    "Saved {files} to {where}": "{files} を {where} に保存しました",
+    "Couldn't save to {where}: {why}": "{where} に保存できませんでした：{why}",
+    "Reading {where}…": "{where} を読み込み中…",
+    "Working in {where}: reports netgen writes and your edits are saved there.":
+        "{where} で作業しています。netgen が書き出すレポートと編集内容はそこに保存されます。",
+    "Saved 1 file to {where}; later changes go there too.": "1 個のファイルを {where} に保存しました。以後の変更もそこに保存されます。",
+    "Saved {n} files to {where}; later changes go there too.": "{n} 個のファイルを {where} に保存しました。以後の変更もそこに保存されます。",
+    "Saved 1 file to {name}": "1 個のファイルを {name} に保存しました",
+    "Saved {n} files to {name}": "{n} 個のファイルを {name} に保存しました",
+    "Wrote {path}": "{path} を書き込みました",
+    "Wrote {path} (Run LVS reads it again)": "{path} を書き込みました（「LVS を実行」で読み込み直します）",
+    "From the {app} app: {name}": "{app} アプリから：{name}",
+    "Drop netlists (.spice, .sim, .v…), setup files (.tcl), a folder, or a .zip / .tar.gz to open it":
+        "ネットリスト（.spice, .sim, .v…）、セットアップファイル（.tcl）、フォルダー、または .zip / .tar.gz をドロップすると開きます",
+    "netgen {version}, Copyright 1990, 1991, 2002, 2004, 2005 Massimo A. Sivilotti, Caltech, and R. Timothy Edwards, MultiGiG, Inc.; changed for this WebAssembly build in 2026 (the changes are listed in the source, About > This web app's source).":
+        "netgen {version}、Copyright 1990, 1991, 2002, 2004, 2005 Massimo A. Sivilotti, Caltech, and R. Timothy Edwards, MultiGiG, Inc.。2026 年にこの WebAssembly 版のために変更されています（変更点はソースに記載。「情報」>「このウェブアプリのソース」）。",
+    "netgen comes with ABSOLUTELY NO WARRANTY. It is free software: you may redistribute it under the terms of the GNU General Public License; About > netgen license shows a copy.":
+        "netgen は完全に無保証です。netgen はフリーソフトウェアであり、GNU 一般公衆利用許諾書（GPL）の条件のもとで再頒布できます。その写しは「情報」>「netgen のライセンス」にあります。",
+});
+
+topEdgeResizer($("#console"), desktop, {label: "Resize the console"});
 
 // Each example: its files (examples/<name>/), and the comparison it runs.
 const OPENRAM_FILES = ["dff", "sense_amp", "tri_gate", "cell_1rw"].flatMap(c => [`${c}.spice`, `${c}.sp`])
@@ -93,23 +223,23 @@ const session = new Session({
 function updateStatus() {
     $("#stop").hidden = !session.busy;
     if(session.busy) {
-        statusEl.textContent = `Running ${session.current.split("\n")[0].slice(0, 60)}…`;
+        statusEl.textContent = t("Running {command}…", {command: session.current.split("\n")[0].slice(0, 60)});
         return;
     }
     if(!project) {
-        statusEl.textContent = "Ready";
+        statusEl.textContent = t("Ready");
         return;
     }
-    const where = project.store ? (project.syncError ? ` · not saved to ${project.store.label}!` : ` · kept in ${project.store.label}`) :
-        " · in memory only";
-    const result = lastResult ? ` · ${lastResult.short}` : "";
+    const where = project.store ? t(project.syncError ? " · not saved to {where}!" : " · kept in {where}", {where: project.store.label}) :
+        t(" · in memory only");
+    const result = lastResult ? ` · ${shortText(lastResult)}` : "";
     statusEl.textContent = `${project.name}${result}${where}`;
 }
 
 // Commands that would end netgen (and the session with it) are the page's.
 function frontEnd(line) {
     if(/^\s*(quit|exit)\b/.test(line)) {
-        print("netgen keeps running in the browser; Project > Restart netgen starts it afresh.", "info");
+        print(t("netgen keeps running in the browser; Project > Restart netgen starts it afresh."), "info");
         return null;
     }
     return line;
@@ -125,7 +255,7 @@ async function run(line, {echo = true} = {}) {
         return null;
     }
     if(!session.started) {
-        print("netgen isn't running: open a project or an example.", "error");
+        print(t("netgen isn't running: open a project or an example."), "error");
         return null;
     }
     let reply = null;
@@ -187,7 +317,7 @@ async function runLvs() {
     }
     const compare = project.compare;
     if(!compare.circuit1[0] || !compare.circuit2[0]) {
-        print("Choose two netlists to compare in the Compare window.", "error");
+        print(t("Choose two netlists to compare in the Compare window."), "error");
         compareWindow.open();
         return;
     }
@@ -196,7 +326,7 @@ async function runLvs() {
         return;
     }
     lastResult = result;
-    print(`Result: ${result.final}`, result.kind === "pass" ? "info" : "error");
+    print(t("Result: {verdict}", {verdict: finalText(result)}), result.kind === "pass" ? "info" : "error");
     resultWindow.open();
     resultWindow.render();
     updateStatus();
@@ -221,7 +351,7 @@ async function startNetgen() {
     const ok = await session.start([...project.files, ...await builtInSetups()]);
     project.synced = new Map((await session.listFiles()).map(f => [f.path, f.mtime]));
     if(!ok) {
-        print("netgen could not start.", "error");
+        print(t("netgen could not start."), "error");
     }
     filesWindow.refresh();
     compareWindow.refresh();
@@ -233,7 +363,7 @@ async function loadProject(name, files, store = null, compare = null) {
     files = store ? files.filter(f => f.path) : stripCommonFolder(files.filter(f => f.path));
     name = name.replace(/\.(zip|tar|tgz|tar\.gz|spice|sp|cir|sim|v|tcl)$/i, "").replace(/[^\w.-]+/g, "_") || "project";
     if(!files.length && !store) {
-        print("No files to load.", "error");
+        print(t("No files to load."), "error");
         return false;
     }
     project = {name, files, store, synced: new Map(), compare: compare || defaultCompare(files)};
@@ -243,7 +373,7 @@ async function loadProject(name, files, store = null, compare = null) {
         }
     }
     document.title = `${name} · netgen`;
-    print(`Opened ${name}: ${files.map(f => f.path).join(", ") || "no files yet"}`, "info");
+    print(files.length ? t("Opened {name}: {files}", {name, files: files.map(f => f.path).join(", ")}) : t("Opened {name}: no files yet", {name}), "info");
     if(!await startNetgen()) {
         return false;
     }
@@ -253,13 +383,13 @@ async function loadProject(name, files, store = null, compare = null) {
 
 async function loadExample(name) {
     const example = EXAMPLES[name];
-    statusEl.textContent = `Loading ${name}…`;
+    statusEl.textContent = t("Loading {name}…", {name});
     const files = [];
     for(const file of example.files) {
         const url = here(`examples/${example.folder || name}/${file}`);
         const response = await fetch(url);
         if(!response.ok) {
-            throw new Error(`Couldn't load the example ${url}: HTTP ${response.status}`);
+            throw new Error(t("Couldn't load the example {url}: HTTP {status}", {url, status: response.status}));
         }
         files.push({path: file, data: new Uint8Array(await response.arrayBuffer())});
     }
@@ -271,7 +401,7 @@ async function loadExample(name) {
 
 async function restart() {
     if(project) {
-        print("Restarting netgen.", "info");
+        print(t("Restarting netgen."), "info");
         project.files = await currentFiles();
         await startNetgen();
     }
@@ -318,12 +448,12 @@ async function syncProject() {
         }
         current.syncError = null;
         if(written.length) {
-            print(`Saved ${written.join(", ")} to ${current.store.label}`, "info");
+            print(t("Saved {files} to {where}", {files: written.join(", "), where: current.store.label}), "info");
             filesWindow.refresh();
         }
     } catch(error) {
         current.syncError = error;
-        print(`Couldn't save to ${current.store.label}: ${error.message || error}`, "error");
+        print(t("Couldn't save to {where}: {why}", {where: current.store.label, why: error.message || error}), "error");
     } finally {
         syncing = false;
         updateStatus();
@@ -353,10 +483,10 @@ async function refreshRecent() {
 }
 
 async function openStore(store) {
-    statusEl.textContent = `Reading ${store.label}…`;
+    statusEl.textContent = t("Reading {where}…", {where: store.label});
     const files = await store.readAll();
     if(await loadProject(store.name, files, store)) {
-        print(`Working in ${store.label}: reports netgen writes and your edits are saved there.`, "info");
+        print(t("Working in {where}: reports netgen writes and your edits are saved there.", {where: store.label}), "info");
     }
     refreshRecent();
 }
@@ -372,7 +502,8 @@ async function keepProject(store) {
     project.store = store;
     project.files = files;
     project.synced = new Map((session.started ? await session.listFiles() : []).map(f => [f.path, f.mtime]));
-    print(`Saved ${files.length} file${files.length === 1 ? "" : "s"} to ${store.label}; later changes go there too.`, "info");
+    print(t(files.length === 1 ? "Saved 1 file to {where}; later changes go there too." : "Saved {n} files to {where}; later changes go there too.",
+        {n: files.length, where: store.label}), "info");
     updateStatus();
     refreshRecent();
 }
@@ -384,7 +515,7 @@ async function download() {
     const files = await currentFiles();
     saveBlob(project.name + ".tar.gz", new Blob([await writeTarGz(files.map(f => ({path: project.name + "/" + f.path, data: f.data})))],
         {type: "application/gzip"}));
-    print(`Saved ${files.length} file${files.length === 1 ? "" : "s"} to ${project.name}.tar.gz`, "info");
+    print(t(files.length === 1 ? "Saved 1 file to {name}" : "Saved {n} files to {name}", {n: files.length, name: project.name + ".tar.gz"}), "info");
 }
 
 async function attempt(work) {
@@ -419,13 +550,14 @@ function projectMenu() {
     if(recent.length) {
         items.push("-");
         for(const entry of recent.slice(0, 8)) {
-            items.push({label: `Reopen ${entry.name} (${entry.kind === "disk" ? "folder" : "browser storage"})`,
+            items.push({label: t(entry.kind === "disk" ? "Reopen {name} (folder)" : "Reopen {name} (browser storage)", {name: entry.name}),
                 action: () => attempt(async () => openStore(await reopen(entry)))});
         }
         items.push({label: "Forget recent projects…", action: () => attempt(async () => {
             const stored = recent.filter(e => e.kind === "browser").map(e => e.name);
-            const warning = stored.length ? ` This deletes ${stored.join(", ")} from browser storage.` : "";
-            if(window.confirm(`Forget the recent projects?${warning} Folders on disk are not touched.`)) {
+            const question = stored.length ? t("Forget the recent projects? This deletes {names} from browser storage. Folders on disk are not touched.",
+                {names: stored.join(", ")}) : t("Forget the recent projects? Folders on disk are not touched.");
+            if(window.confirm(question)) {
                 for(const entry of recent) {
                     await forget(entry.id);
                 }
@@ -462,18 +594,21 @@ class CompareWindow {
             title: "Compare", x: 12, y: 12, width: Math.min(440, desktop.clientWidth - 24), height: Math.min(392, desktop.clientHeight - 24),
             onClose: () => this.close(),
         });
-        const circuit = (n, label) => `<fieldset><legend>${label}</legend>
-            <label>Netlist <select data-field="file${n}"></select></label>
-            <label>Cell <input data-field="cell${n}" list="cells${n}" spellcheck="false" placeholder="(the file's top cell)"><datalist id="cells${n}"></datalist></label>
+        const circuit = (n, label) => `<fieldset><legend data-i18n="${label}"></legend>
+            <label><span data-i18n="Netlist"></span> <select data-field="file${n}"></select></label>
+            <label><span data-i18n="Cell"></span> <input data-field="cell${n}" list="cells${n}" spellcheck="false"
+                data-i18n-placeholder="(the file's top cell)"><datalist id="cells${n}"></datalist></label>
             </fieldset>`;
         this.fw.body.innerHTML = `<form class="cmp-form">
             ${circuit(1, "Circuit 1: usually the layout (extracted netlist)")}
             ${circuit(2, "Circuit 2: usually the schematic")}
-            <label class="cmp-wide">Setup <select data-field="setup"></select></label>
-            <label class="cmp-check"><input type="checkbox" data-field="blackbox"> Treat empty subcircuits as black boxes</label>
-            <div class="cmp-buttons"><button type="submit" class="primary">Run LVS</button><button type="button" data-act="swap">Swap</button></div>
+            <label class="cmp-wide"><span data-i18n="Setup"></span> <select data-field="setup"></select></label>
+            <label class="cmp-check"><input type="checkbox" data-field="blackbox"> <span data-i18n="Treat empty subcircuits as black boxes"></span></label>
+            <div class="cmp-buttons"><button type="submit" class="primary" data-i18n="Run LVS"></button><button type="button" data-act="swap"
+                data-i18n="Swap"></button></div>
             <code class="cmp-command"></code>
             </form>`;
+        applyStatic(this.fw.body);
         this.form = this.fw.body.querySelector("form");
         this.form.addEventListener("submit", event => {
             event.preventDefault();
@@ -509,7 +644,7 @@ class CompareWindow {
             el.disabled = disabled;
         }
         if(!project) {
-            this.form.querySelector(".cmp-command").textContent = "Open a project or an example.";
+            this.form.querySelector(".cmp-command").textContent = t("Open a project or an example.");
             return;
         }
         const compare = project.compare;
@@ -522,7 +657,7 @@ class CompareWindow {
                 select.add(new Option(path, path, false, path === file));
             }
             if(!netlists.length) {
-                select.add(new Option("(no netlists in the project)", ""));
+                select.add(new Option(t("(no netlists in the project)"), ""));
             }
             this.field("cell" + n).value = cell;
             const list = this.form.querySelector("#cells" + n);
@@ -533,12 +668,12 @@ class CompareWindow {
         }
         const setup = this.field("setup");
         setup.textContent = "";
-        setup.add(new Option("none (netgen's defaults)", ""));
+        setup.add(new Option(t("none (netgen's defaults)"), ""));
         for(const path of project.files.map(f => f.path).filter(p => /\.tcl$/i.test(p))) {
-            setup.add(new Option(path + " (project)", path));
+            setup.add(new Option(t("{path} (project)", {path}), path));
         }
         for(const [path, label] of Object.entries(BUILT_IN_SETUPS)) {
-            setup.add(new Option(label + " (built in)", path));
+            setup.add(new Option(t("{label} (built in)", {label: t(label)}), path));
         }
         setup.value = compare.setup;
         this.field("blackbox").checked = compare.blackbox;
@@ -570,7 +705,7 @@ class CompareWindow {
 const compareWindow = new CompareWindow();
 
 const resultWindow = new ResultWindow({desktop, saveBlob, result: () => lastResult,
-    emptyText: () => (project ? "Run LVS from the Compare window to see what netgen finds." : "Open a project or an example.")});
+    emptyText: () => t(project ? "Run LVS from the Compare window to see what netgen finds." : "Open a project or an example.")});
 
 // ----- Files window: view and edit the project's files
 
@@ -593,11 +728,12 @@ class FilesWindow {
             title: "Files", x: 24, y: Math.min(360, desktop.clientHeight - 200), width: Math.min(560, desktop.clientWidth - 48),
             height: Math.min(320, desktop.clientHeight - 24), onClose: () => this.close(),
         });
-        this.fw.body.innerHTML = '<div class="files-body"><ul class="files-list" role="listbox" aria-label="Project files"></ul>' +
-            '<div class="files-edit"><div class="files-bar"><button type="button" data-act="save" title="Write the file (Ctrl+S)">Save</button>' +
-            '<button type="button" data-act="run" title="Run it as a Tcl script (source)">Source</button>' +
-            '<button type="button" data-act="new">New…</button><button type="button" data-act="download">Download</button><span></span></div>' +
-            '<textarea spellcheck="false" aria-label="File contents"></textarea></div></div>';
+        this.fw.body.innerHTML = '<div class="files-body"><ul class="files-list" role="listbox" data-i18n-aria-label="Project files"></ul>' +
+            '<div class="files-edit"><div class="files-bar"><button type="button" data-act="save" data-i18n="Save" data-i18n-title="Write the file (Ctrl+S)"></button>' +
+            '<button type="button" data-act="run" data-i18n="Source" data-i18n-title="Run it as a Tcl script (source)"></button>' +
+            '<button type="button" data-act="new" data-i18n="New…"></button><button type="button" data-act="download" data-i18n="Download"></button><span></span></div>' +
+            '<textarea spellcheck="false" data-i18n-aria-label="File contents"></textarea></div></div>';
+        applyStatic(this.fw.body);
         this.list = this.fw.body.querySelector(".files-list");
         paneResizer(this.list, {label: "Resize the file list", storageKey: "netgen-files-list-width"});
         this.text = this.fw.body.querySelector("textarea");
@@ -662,7 +798,7 @@ class FilesWindow {
             return;              // netgen is restarting, or the file is gone
         }
         const big = data && data.length > 2e6;
-        this.text.value = !data ? "" : big ? `(${data.length} bytes: too big to show)` : decoder.decode(data);
+        this.text.value = !data ? "" : big ? t("({n} bytes: too big to show)", {n: data.length}) : decoder.decode(data);
         this.text.readOnly = big;
         this.label.textContent = path;
         for(const li of this.list.children) {
@@ -678,7 +814,7 @@ class FilesWindow {
         await session.writeFile(this.path, data);
         const known = project.files.find(f => f.path === this.path);
         known ? (known.data = data) : project.files.push({path: this.path, data});
-        print(`Wrote ${this.path}${NETLIST.test(this.path) ? " (Run LVS reads it again)" : ""}`, "info");
+        print(t(NETLIST.test(this.path) ? "Wrote {path} (Run LVS reads it again)" : "Wrote {path}", {path: this.path}), "info");
         compareWindow.refresh();
         scheduleSync();
     }
@@ -733,7 +869,7 @@ async function openFiles(fileList, folderName) {
     try {
         const list = Array.from(fileList);
         if(list.length === 1 && isArchive(list[0].name)) {
-            statusEl.textContent = `Reading ${list[0].name}…`;
+            statusEl.textContent = t("Reading {where}…", {where: list[0].name});
             await loadProject(list[0].name, await readArchive(list[0].name, new Uint8Array(await list[0].arrayBuffer())));
             return;
         }
@@ -912,12 +1048,27 @@ async function announce() {
     } catch(error) {
         // Keep the short version
     }
-    print(`netgen ${version}, Copyright 1990, 1991, 2002, 2004, 2005 Massimo A. Sivilotti, Caltech, and ` +
+    print(t("netgen {version}, Copyright 1990, 1991, 2002, 2004, 2005 Massimo A. Sivilotti, Caltech, and " +
         "R. Timothy Edwards, MultiGiG, Inc.; changed for this WebAssembly build in 2026 (the changes are listed in the " +
-        "source, About > This web app's source).", "info");
-    print("netgen comes with ABSOLUTELY NO WARRANTY. It is free software: you may redistribute it under the terms of the " +
-        "GNU General Public License; About > netgen license shows a copy.", "info");
+        "source, About > This web app's source).", {version}), "info");
+    print(t("netgen comes with ABSOLUTELY NO WARRANTY. It is free software: you may redistribute it under the terms of the " +
+        "GNU General Public License; About > netgen license shows a copy."), "info");
 }
+
+// The page's static text, the language button, and what to redo when the language changes.
+applyStatic();
+$("#help-toggle").before(languageButton());
+const dropText = () => (desktop.dataset.drop = t("Drop netlists (.spice, .sim, .v…), setup files (.tcl), a folder, or a .zip / .tar.gz to open it"));
+dropText();
+onLanguageChange(() => {
+    dropText();
+    updateStatus();
+    compareWindow.refresh();
+    resultWindow.render();
+    if(filesWindow.text?.readOnly) {
+        filesWindow.show(filesWindow.path);
+    }
+});
 
 async function start() {
     const handed = receiveProject();
@@ -927,7 +1078,7 @@ async function start() {
     // A project from another of the apps (Magic's Open in the netgen App), or an example.
     const sent = await handed;
     if(sent) {
-        print(`From the ${sent.from} app: ${sent.name}`, "info");
+        print(t("From the {app} app: {name}", {app: sent.from, name: sent.name}), "info");
         if(await loadProject(sent.name, sent.files, null, sent.compare)) {
             await runLvs();
         }

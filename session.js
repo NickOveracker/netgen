@@ -6,6 +6,20 @@
 // can be stopped by ending the worker and replaying the commands before it
 // in a fresh one (stop()).  The same recovery follows "quit" or a crash.
 
+import {t, register} from "./i18n.js";
+
+// Its messages in Japanese (i18n.js).
+register({
+    "netgen is not running.": "netgen は実行されていません。",
+    "netgen exited ({command}).": "netgen が終了しました（{command}）。",
+    "netgen stopped: {why}.": "netgen が停止しました：{why}。",
+    "{message} Restarting…": "{message}再起動しています…",
+    "{message} Restarting and replaying 1 command…": "{message}再起動して、コマンド 1 個を再実行しています…",
+    "{message} Restarting and replaying {n} commands…": "{message}再起動して、コマンド {n} 個を再実行しています…",
+    'Back to the state before "{command}".': "「{command}」の前の状態に戻りました。",
+    'Stopped "{command}".': "「{command}」を停止しました。",
+});
+
 export class Session {
     constructor({onOutput, onState}) {
         this.onOutput = onOutput;
@@ -82,7 +96,7 @@ export class Session {
 
     async runNow(script) {
         if(!this.worker || !this.started) {
-            throw new Error("netgen is not running.");
+            throw new Error(t("netgen is not running."));
         }
         this.busy = true;
         this.current = script;
@@ -91,7 +105,8 @@ export class Session {
             const reply = await this.request({type: "eval", script});
             if(this.endedEarly) {
                 const why = this.endedEarly;
-                await this.recover(script, why === "netgen exited" ? `netgen exited (${script}).` : `netgen stopped: ${why}.`);
+                await this.recover(script, why === "netgen exited" ? t("netgen exited ({command}).", {command: script}) :
+                    t("netgen stopped: {why}.", {why}));
                 return {result: "", code: -1, ended: true};
             }
             this.log.push(script);
@@ -106,7 +121,9 @@ export class Session {
     // Start again with the same files and replay every command that finished.
     async recover(dropped, message) {
         const log = this.log.slice();
-        this.onOutput(`${message} Restarting${log.length ? ` and replaying ${log.length} command${log.length === 1 ? "" : "s"}` : ""}…`, true);
+        const n = log.length;
+        this.onOutput(t(!n ? "{message} Restarting…" : n === 1 ? "{message} Restarting and replaying 1 command…" :
+            "{message} Restarting and replaying {n} commands…", {message, n}), true);
         this.replaying = true;
         try {
             this.spawn();
@@ -119,7 +136,7 @@ export class Session {
         } finally {
             this.replaying = false;
         }
-        this.onOutput(`Back to the state before "${dropped}".`, false);
+        this.onOutput(t('Back to the state before "{command}".', {command: dropped}), false);
     }
 
     // Stop the command that is running (by restarting and replaying).
@@ -133,7 +150,7 @@ export class Session {
         }
         this.pending.clear();
         this.queue = Promise.resolve();
-        await this.recover(script, `Stopped "${script}".`);
+        await this.recover(script, t('Stopped "{command}".', {command: script}));
         this.busy = false;
         this.onState();
     }

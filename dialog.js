@@ -3,6 +3,11 @@
 // dialogs).  ask({title, fields, ok}) resolves to {name: value, ...}, or
 // null when cancelled.  A field is {name, label, value, options?, list?}:
 // "options" makes a drop-down, "list" offers suggestions while typing.
+// Text is given in English and shown in the page's language (i18n.js).
+
+import {t, maybe, register} from "./i18n.js";
+
+register({"Cancel": "キャンセル", "OK": "OK"});
 
 const STYLES = `
 .dlg { border: 1px solid var(--rule); border-radius: 10px; padding: 0; background: var(--panel); color: var(--fg);
@@ -37,23 +42,23 @@ export function ask({title, message, fields = [], ok = "OK"}) {
     const form = document.createElement("form");
     form.method = "dialog";
     const heading = document.createElement("h2");
-    heading.textContent = title;
+    heading.textContent = maybe(title);
     form.appendChild(heading);
     if(message) {
         const p = document.createElement("p");
-        p.textContent = message;
+        p.textContent = maybe(message);
         form.appendChild(p);
     }
     const inputs = {};
     for(const field of fields) {
         const label = document.createElement("label");
-        label.textContent = field.label;
+        label.textContent = maybe(field.label);
         let input;
         if(field.options) {
             input = document.createElement("select");
             for(const option of field.options) {
                 const [value, text] = Array.isArray(option) ? option : [option, option];
-                input.add(new Option(text, value));
+                input.add(new Option(maybe(text), value));
             }
         } else {
             input = document.createElement("input");
@@ -79,8 +84,9 @@ export function ask({title, message, fields = [], ok = "OK"}) {
     }
     const buttons = document.createElement("div");
     buttons.className = "dlg-buttons";
-    buttons.innerHTML = '<button type="button" value="cancel">Cancel</button><button type="submit" value="ok"></button>';
-    buttons.lastChild.textContent = ok;
+    buttons.innerHTML = '<button type="button" value="cancel"></button><button type="submit" value="ok"></button>';
+    buttons.firstChild.textContent = t("Cancel");
+    buttons.lastChild.textContent = maybe(ok);
     form.appendChild(buttons);
     dialog.appendChild(form);
     document.body.appendChild(dialog);

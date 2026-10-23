@@ -12,6 +12,11 @@
 //
 // Keyboard: Enter, space or Down opens a menu; arrows move; Left/Right switch
 // to the neighbouring menu; Escape closes.
+//
+// Titles and labels are given in English and shown in the page's language (i18n.js), with
+// the translations the apps register; labels without one (file names) are shown as they are.
+
+import {maybe, onLanguageChange} from "./i18n.js";
 
 const STYLES = `
 .mb-bar { display: flex; flex-wrap: wrap; gap: 1px; }
@@ -82,12 +87,11 @@ export function menuBar(menus, label, options = {}) {
     const bar = document.createElement("div");
     bar.className = "mb-bar";
     bar.setAttribute("role", "menubar");
-    bar.setAttribute("aria-label", label);
     const buttons = menus.map(([title, items]) => {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "mb-button";
-        button.textContent = title;
+        button.dataset.title = title;
         button.setAttribute("aria-haspopup", "menu");
         button.setAttribute("aria-expanded", "false");
         button.addEventListener("click", event => {
@@ -124,6 +128,23 @@ export function menuBar(menus, label, options = {}) {
         bar.appendChild(button);
         return {button, items};
     });
+    const translate = () => {
+        bar.setAttribute("aria-label", maybe(label));
+        for(const {button} of buttons) {
+            button.textContent = maybe(button.dataset.title);
+        }
+    };
+    translate();
+    // Follow the language until the bar has been on the page and left it.
+    let placed = false;
+    const stop = onLanguageChange(() => {
+        if(bar.isConnected || !placed) {
+            placed = placed || bar.isConnected;
+            translate();
+        } else {
+            stop();
+        }
+    });
 
     function neighbour(button, step) {
         const i = buttons.findIndex(b => b.button === button);
@@ -154,7 +175,7 @@ export function menuBar(menus, label, options = {}) {
             }
             li.innerHTML = '<span class="mb-check" aria-hidden="true"></span><span></span>';
             li.firstChild.textContent = checked ? "✓" : "";
-            li.lastChild.textContent = item.label;
+            li.lastChild.textContent = maybe(item.label);
             if(item.href) {
                 li.insertAdjacentHTML("beforeend", '<span class="mb-out" aria-hidden="true">↗</span>');
             }
@@ -162,7 +183,7 @@ export function menuBar(menus, label, options = {}) {
                 li.setAttribute("aria-disabled", "true");
             }
             if(item.title) {
-                li.title = item.title;
+                li.title = maybe(item.title);
             }
             const choose = byKeyboard => {
                 if(item.disabled) {

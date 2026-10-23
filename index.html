@@ -95,8 +95,11 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 #help dd { margin: 0; color: var(--muted); }
 #help p { margin: 6px 0; }
 #help code { font-family: var(--mono); }
+/* Japanese breaks anywhere, so its descriptions go under the commands rather than in a narrow column. */
+#help [lang="ja"] dl { grid-template-columns: 1fr; }
+#help [lang="ja"] dd { padding: 0 0 4px 1.5em; }
 
-body.dragging #desktop::after { content: "Drop netlists (.spice, .sim, .v…), setup files (.tcl), a folder, or a .zip / .tar.gz to open it";
+body.dragging #desktop::after { content: attr(data-drop);
   position: absolute; inset: 12px; display: grid; place-items: center; border: 2px dashed var(--accent); border-radius: 12px;
   background: color-mix(in srgb, var(--panel) 85%, transparent); font-size: 16px; z-index: 900001; text-align: center; padding: 20px; }
 
@@ -108,19 +111,21 @@ body.dragging #desktop::after { content: "Drop netlists (.spice, .sim, .v…), s
 </head>
 <body>
 <header class="toolbar">
-  <h1>netgen <small>LVS netlist comparison · WebAssembly</small></h1>
+  <h1>netgen <small data-i18n="LVS netlist comparison · WebAssembly">LVS netlist comparison · WebAssembly</small></h1>
   <div id="top-menus"></div>
-  <button type="button" id="help-toggle" aria-expanded="false" aria-controls="help">Help</button>
-  <button type="button" id="stop" hidden title="Stop the command that is running">Stop</button>
-  <span id="status" role="status">Loading…</span>
-  <a id="kofi" href="https://ko-fi.com/twentynine" target="_blank" rel="noopener"><span aria-hidden="true">♥</span>Support on Ko-fi</a>
+  <button type="button" id="help-toggle" aria-expanded="false" aria-controls="help" data-i18n="Help">Help</button>
+  <button type="button" id="stop" hidden data-i18n-title="Stop the command that is running" data-i18n="Stop">Stop</button>
+  <span id="status" role="status" data-i18n="Loading…">Loading…</span>
+  <a id="kofi" href="https://ko-fi.com/twentynine" target="_blank" rel="noopener"><span aria-hidden="true">♥</span><span
+    data-i18n="Support on Ko-fi">Support on Ko-fi</span></a>
   <input type="file" id="pick-files" multiple hidden accept=".spice,.spi,.sp,.cir,.ckt,.cdl,.net,.netlist,.sim,.ext,.v,.vg,.ntk,.tcl,.zip,.tar,.tgz,.gz,.txt">
   <input type="file" id="pick-folder" webkitdirectory hidden>
 </header>
 
-<main id="desktop" aria-label="netgen windows"></main>
+<main id="desktop" data-i18n-aria-label="netgen windows"></main>
 
 <aside id="help" hidden>
+ <div data-only="en">
   <h2>Comparing netlists (LVS)</h2>
   <p>netgen checks that two netlists describe the same circuit: usually a layout's extracted netlist (Magic's
     <code>ext2spice lvs</code>) against the schematic it should implement. It matches devices and nets by how they connect,
@@ -148,12 +153,43 @@ body.dragging #desktop::after { content: "Drop netlists (.spice, .sim, .v…), s
   <p>Project &gt; Open files or Open folder copies netlists and setup files, or one .zip / .tar.gz, into the page; you can also
     drop them on it. To keep your work, <b>work in a folder on disk</b> (Chrome, Edge and other Chromium browsers) or <b>keep
     the project in browser storage</b> (any browser): reports netgen writes and your edits in the Files window are saved there.</p>
+ </div>
+ <div data-only="ja" lang="ja">
+  <h2>ネットリストの比較（LVS）</h2>
+  <p>netgen は、2 つのネットリストが同じ回路を表しているかを調べます。ふつうは、レイアウトから抽出したネットリスト（Magic の
+    <code>ext2spice lvs</code>）と、そのレイアウトが実装するはずの回路図とを比べます。デバイスとネットは名前ではなく接続のしかたで対応づけられ、異なる点（ネット、デバイス、ピン、デバイスのサイズ＝プロパティ）が報告されます。</p>
+  <p><b>比較</b>ウィンドウで 2 つのネットリストと、それぞれのセル（サブサーキット。.sim と .ext のファイルはセルを 1
+    つだけ含みます）、セットアップファイルを選び、<b>LVS を実行</b>します。<b>結果</b>ウィンドウには、判定、異なるネットとデバイスの左右の対比、プロパティの違いとピン、そして
+    netgen のレポート全文が表示されます。</p>
+  <h2>セットアップファイル</h2>
+  <p>セットアップファイル（Tcl）は、どのデバイス名が同じものか、どの端子を入れ替えられるか、どのプロパティを比較するかを netgen
+    に伝えます。プロセスキットには付属しています（sky130 なら <code>sky130A_setup.tcl</code>）。プロジェクトに追加して選んでください。組み込みの
+    <b>scmos</b> セットアップは Magic の scmos テクノロジー向けです。セットアップファイルがなければ、netgen は既定の設定を使います。</p>
+  <h2>コマンド</h2>
+  <p>コンソールでは netgen と Tcl のどのコマンドも実行できます。たとえば：</p>
+  <dl>
+    <dt>lvs {a.spice cell} {b.spice cell} setup.tcl out.txt -json</dt><dd>「LVS を実行」が行うこと</dd>
+    <dt>readnet file · cells list 0</dt><dd>ネットリストを読み込みます／そのセルを一覧表示します</dd>
+    <dt>writenet spice {a.spice cell}</dt><dd>セルを別の形式で書き出します</dd>
+    <dt>reinitialize</dt><dd>読み込んだネットリストをすべて消去します</dd>
+    <dt>help</dt><dd>netgen のすべてのコマンド</dd>
+  </dl>
+  <p>大文字と小文字を区別する形式（.sim、.ext、Verilog）と SPICE を混ぜる場合：netgen
+    は最初に読み込んだファイルの区別のしかたに従うため、ノード名が大文字・小文字だけで異なるときは SPICE
+    のネットリストを先にしてください。時間がかかりすぎるコマンドは<b>停止</b>で終了できます。netgen
+    は再起動し、それまでのコマンドを再実行します。</p>
+  <h2>プロジェクト</h2>
+  <p>「プロジェクト」>「ファイルを開く」「フォルダーを開く」で、ネットリストとセットアップファイル、または .zip / .tar.gz を 1
+    つ、ページにコピーします。ページにドロップすることもできます。作業内容を残すには、<b>ディスク上のフォルダーで作業</b>する（Chrome、Edge
+    などの Chromium 系ブラウザー）か、<b>プロジェクトをブラウザーのストレージに保存</b>します（どのブラウザーでも可）。netgen
+    が書き出すレポートと、ファイルウィンドウでの編集内容はそこに保存されます。</p>
+ </div>
 </aside>
 
-<section id="console" aria-label="netgen console">
+<section id="console" data-i18n-aria-label="netgen console">
   <div id="log" aria-live="polite"></div>
   <div class="command-row">
-    <button type="button" id="console-toggle" aria-expanded="true" aria-controls="log" title="Show or hide the console">☰</button>
+    <button type="button" id="console-toggle" aria-expanded="true" aria-controls="log" data-i18n-title="Show or hide the console">☰</button>
     <label for="command">netgen&gt;</label>
     <input id="command" autocomplete="off" spellcheck="false" placeholder="lvs {a.spice cell} {b.spice cell} setup.tcl · readnet file · help">
   </div>

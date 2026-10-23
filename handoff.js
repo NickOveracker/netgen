@@ -5,6 +5,14 @@
 // their stixu.io subdomains, or the page's own origin (the apps served together, as Magic
 // serves the other two from its submodules).
 
+import {t, lang, register} from "./i18n.js";
+
+register({
+    "The browser blocked the new tab: allow pop-ups for this site, then try again.":
+        "ブラウザーが新しいタブをブロックしました。このサイトのポップアップを許可してから、もう一度お試しください。",
+    "{host} didn't answer.": "{host} から応答がありませんでした。",
+});
+
 const SITES = {magic: "https://magic.stixu.io", irsim: "https://irsim.stixu.io", netgen: "https://netgen.stixu.io"};
 const READY = "stixu-ready", PROJECT = "stixu-project";
 const trusted = origin => origin === location.origin || Object.values(SITES).includes(origin);
@@ -20,9 +28,11 @@ export function appUrl(app, local) {
 export function sendProject(url, from, project, {timeout = 60000} = {}) {
     url = new URL(url);
     url.searchParams.set("from", from);
+    // The other app opens in this page's language.
+    url.searchParams.set("lang", lang());
     const target = window.open(url, "_blank");
     if(!target) {
-        return Promise.reject(new Error("The browser blocked the new tab: allow pop-ups for this site, then try again."));
+        return Promise.reject(new Error(t("The browser blocked the new tab: allow pop-ups for this site, then try again.")));
     }
     return new Promise((resolve, reject) => {
         const done = () => {
@@ -31,7 +41,7 @@ export function sendProject(url, from, project, {timeout = 60000} = {}) {
         };
         const timer = setTimeout(() => {
             done();
-            reject(new Error(`${url.host} didn't answer.`));
+            reject(new Error(t("{host} didn't answer.", {host: url.host})));
         }, timeout);
         const listen = event => {
             if(event.source !== target || !trusted(event.origin) || event.data?.type !== READY) {

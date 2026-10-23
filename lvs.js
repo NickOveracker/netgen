@@ -171,6 +171,9 @@ function h(tag, attrs = {}, ...children) {
 
 const NO_MATCH = /^\(no matching/;
 
+// A circuit for people to read: "file.spice, cell top" (circuitArg() is the Tcl form).
+const describe = ([file, cell]) => (cell ? `${file}, cell ${cell}` : file);
+
 // The Result window.  host: {desktop, saveBlob, result() (the latest result, or null),
 // emptyText() (what to say when there is none)}.
 export class ResultWindow {
@@ -218,7 +221,7 @@ export class ResultWindow {
         const icon = {pass: "✓", warn: "!", fail: "✕"}[r.kind];
         body.append(h("div", {class: `res-verdict res-${r.kind}`}, h("span", {class: "res-icon", "aria-hidden": "true"}, icon),
             h("div", {}, h("strong", {}, r.final), h("div", {class: "res-sub"},
-                `${circuitArg(r.compare.circuit1)} vs ${circuitArg(r.compare.circuit2)} · ${(r.ms / 1000).toFixed(2)} s`))));
+                `${describe(r.compare.circuit1)} vs ${describe(r.compare.circuit2)} · ${(r.ms / 1000).toFixed(2)} s`))));
         const actions = h("div", {class: "res-actions"},
             h("button", {type: "button", "data-act": "report"}, "Download report"),
             r.json ? h("button", {type: "button", "data-act": "json"}, "Download JSON") : null);

@@ -162,7 +162,8 @@ function defaultCell(path) {
 // netlists say so in their first line; otherwise the order of the files.
 function defaultCompare(files) {
     const netlists = files.map(f => f.path).filter(p => NETLIST.test(p));
-    const extracted = p => /created from .*\.ext|extracted/i.test(decoder.decode(files.find(f => f.path === p).data.subarray(0, 200)));
+    // Magic writes "* NGSPICE file created from <cell>.ext" as the first line.
+    const extracted = p => /^\* \w+ file created from .*\.ext/i.test(decoder.decode(files.find(f => f.path === p).data.subarray(0, 200)));
     const schematic = p => /sch/i.test(p);
     const sorted = [...netlists.filter(p => extracted(p) && !schematic(p)), ...netlists.filter(p => !extracted(p) && !schematic(p)),
         ...netlists.filter(p => schematic(p))];

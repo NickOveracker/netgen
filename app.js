@@ -1091,8 +1091,27 @@ $("#top-menus").appendChild(menuBar([
     ]],
 ], "Page menu", {onDone: home}));
 
+// The announcement the GNU General Public License (paragraph 2c) asks an interactive
+// program to show when it starts: copyright, no warranty, redistribution, and where the
+// licence is.  The copyright line is netgen's own (src/base/netgen.h).
+async function announce() {
+    let version = "1.5";
+    try {
+        const response = await fetch(here("src/VERSION"));
+        version = response.ok ? (await response.text()).trim() : version;
+    } catch(error) {
+        // Keep the short version
+    }
+    print(`netgen ${version}, Copyright 1990, 1991, 2002, 2004, 2005 Massimo A. Sivilotti, Caltech, and ` +
+        "R. Timothy Edwards, MultiGiG, Inc.; changed for this WebAssembly build in 2026 (the changes are listed in the " +
+        "source, About > This web app's source).", "info");
+    print("netgen comes with ABSOLUTELY NO WARRANTY. It is free software: you may redistribute it under the terms of the " +
+        "GNU General Public License; About > netgen license shows a copy.", "info");
+}
+
 async function start() {
     refreshRecent();
+    await announce();
     resultWindow.open();
     const name = new URLSearchParams(location.search).get("example");
     await loadExample(EXAMPLES[name] ? name : DEFAULT_EXAMPLE);

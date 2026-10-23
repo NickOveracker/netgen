@@ -89,3 +89,15 @@ netgen too; each is a separate commit on this branch:
   bugs above were found that way.
 * The app was tested in headless Chromium and Firefox: every example, the Compare window, editing a netlist and
   running again, the console, Stop, and browser storage across a reload.
+
+## Licence
+
+netgen is free software under the GNU General Public License (the file `Copying`; netgen's source files allow any
+version). This fork as a whole, including the web app (the HTML, JavaScript and CSS at the top), `build.sh`, the setup
+file and the examples, is distributed under the same licence, at no charge, WITHOUT ANY WARRANTY. The module also
+contains Tcl and the Emscripten runtime, under their own permissive licences (`licenses/`).
+
+As the licence asks, the files under `src/` that this fork changed or added carry a notice saying so, with the date and
+subject of each change, and `build.sh` stamps such a notice into the copy of `netgen.tcl` it embeds in the module. The
+app shows netgen's copyright, the absence of warranty and the terms for redistribution in its console when it starts.
+Keep the notices up to date with further changes.

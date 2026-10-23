@@ -87,7 +87,14 @@ but reads from 'promptstring_infile' if nec. */
   nexttok = InputLine;
   while (isspace(*nexttok) && *nexttok != '\0') nexttok++;
   if (*nexttok == '\0') {
-    fgets(InputLine, sizeof(InputLine), promptstring_infile);
+    if (fgets(InputLine, sizeof(InputLine), promptstring_infile) == NULL) {
+      /* End of input: answer "q", which leaves the interactive menus	*/
+      /* (protochip and the query loop).  Otherwise they would print	*/
+      /* their menu again and read EOF forever.				*/
+      InputLine[0] = '\0';
+      strcpy(buf, "q");
+      return;
+    }
     if (promptstring_infile == stdin) echo = 0;
     nexttok = InputLine;
     while (isspace(*nexttok) && *nexttok != '\0') nexttok++;

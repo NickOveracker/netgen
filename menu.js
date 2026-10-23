@@ -15,6 +15,7 @@
 
 const STYLES = `
 .mb-bar { display: flex; flex-wrap: wrap; gap: 1px; }
+.mb-bar, .mb-menu { -webkit-user-select: none; user-select: none; }
 .mb-button { font: 12px system-ui, sans-serif; color: inherit; background: none; border: 1px solid transparent;
   border-radius: 4px; padding: 1px 7px; min-height: 22px; cursor: pointer; }
 .mb-button:hover, .mb-button[aria-expanded="true"] { background: var(--head); border-color: var(--rule); }

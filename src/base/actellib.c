@@ -29,6 +29,8 @@ the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. */
 #include "config.h"
 #include <stdio.h>
 #include "netgen.h"
+#include "hash.h"
+#include "objlist.h"
 
 static int actel_lib_present = 0;
 
@@ -40,9 +42,17 @@ int ActelLibPresent(void)
 void ActelLib(void)
 {
   int OldDebug;
+  int nomatch;
 
   OldDebug = Debug;
   Debug = 0;
+
+  /* No netlist has been read yet if matchfunc is NULL (the readers	*/
+  /* use that to choose case sensitivity).  The cells below need one	*/
+  /* for their lookups, so use the case-sensitive default meanwhile	*/
+  /* and leave the choice to the first netlist read.			*/
+  nomatch = (matchfunc == NULL);
+  if (nomatch) matchfunc = match;
 
   CellDef("OUTBUF", -1);
 #ifdef USE_UNIQUE_GLOBALS
@@ -1268,6 +1278,7 @@ BIBUF
 	EndCell();
 
   Debug = OldDebug;
+  if (nomatch) matchfunc = NULL;
 
   actel_lib_present = 1;
 }
